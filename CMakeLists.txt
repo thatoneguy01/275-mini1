@@ -5,12 +5,27 @@ project(my_project
         LANGUAGES CXX
 )
 
+# Add subdirectories for library components
 add_subdirectory(dob)
+add_subdirectory(csv)
+add_subdirectory(query)
 
-# Example of another module
-# add_subdirectory(other_module)
+# Main library target (INTERFACE library for aggregating component libraries)
+add_library(mini1 INTERFACE)
 
-# Example executable using dob
-add_executable(example example_main.cpp
-        main.cpp)
-target_link_libraries(example PRIVATE dob)
+# ...existing code...
+
+# Link subdirectory libraries
+target_link_libraries(mini1 INTERFACE
+        dob
+        csv
+        query
+)
+
+# Include directories
+target_include_directories(mini1 INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# C++ standard
+target_compile_features(mini1 INTERFACE cxx_std_20)

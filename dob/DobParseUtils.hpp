@@ -10,7 +10,7 @@
 #include <functional>
 #include <typeinfo>
 
-#include "dob_types.h"
+#include "DobTypes.hpp"
 
 namespace dob {
 
@@ -106,22 +106,11 @@ namespace dob {
         return std::nullopt;
     }
 
-    // ...existing code...
-        int32_t v{};
-        std::from_chars(s.data(), s.data()+s.size(), v);
-        return v;
-    }
-
-    inline int16_t parse_int16(std::string_view s) {
-        int32_t tmp{};
+    template <typename T>
+    inline T parse_simple(std::string_view s) {
+        T tmp;
         std::from_chars(s.data(), s.data()+s.size(), tmp);
-        return static_cast<int16_t>(tmp);
-    }
-
-    inline int64_t parse_int64(std::string_view s) {
-        int64_t v{};
-        std::from_chars(s.data(), s.data()+s.size(), v);
-        return v;
+        return tmp;
     }
 
     inline int64_t parse_money_cents(std::string_view s) {

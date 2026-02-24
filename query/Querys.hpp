@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <any>
+#include "../dob/DobParseUtils.hpp"
 
 namespace query {
     class Query {
@@ -16,6 +17,8 @@ namespace query {
 
     // Logical AND query - all subqueries must match
     class AndQuery : public Query {
+    private:
+        std::vector<std::unique_ptr<Query>> subqueries_;
     public:
         explicit AndQuery(std::vector<std::unique_ptr<Query>> subqueries);
 
@@ -27,6 +30,8 @@ namespace query {
 
     // Logical OR query - any subquery must match
     class OrQuery : public Query {
+    private:
+        std::vector<std::unique_ptr<Query>> subqueries_;
     public:
         explicit OrQuery(std::vector<std::unique_ptr<Query>> subqueries);
 
@@ -36,8 +41,23 @@ namespace query {
         bool eval(std::string_view row) override;
     };
 
+    class NotQuery : public Query {
+    private:
+        std::unique_ptr<Query> subquery_;
+    public:
+        explicit NotQuery(std::unique_ptr<Query> subquery);
+
+        bool eval(std::string_view row) override;
+    };
+
     // Equality match query - field equals a value
     class MatchQuery : public Query {
+    private:
+        int columnIndex_;
+        dob::ColumnCategory category_;
+        std::any value_;
+        const std::type_info* columnType_;
+
     public:
         MatchQuery(std::string_view column, const std::any& value);
 
@@ -48,6 +68,12 @@ namespace query {
     // Supports: numeric columns and string columns
     // Does not support: boolean columns
     class RangeQuery : public Query {
+    private:
+        int columnIndex_;
+        dob::ColumnCategory category_;
+        std::any minValue_;
+        std::any maxValue_;
+
     public:
         RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue);
 

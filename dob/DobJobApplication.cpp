@@ -1,11 +1,11 @@
-#include "dob_job_application.h"
+#include "DobJobApplication.hpp"
 
 #include <vector>
 #include <limits>
 #include <charconv>
 
-#include "dob_csv.h"
-#include "dob_parse_utils.h"
+#include "DobCsv.hpp"
+#include "DobParseUtils.hpp"
 
 namespace dob {
 
@@ -20,16 +20,16 @@ namespace dob {
 
         size_t i = 0;
 
-        r.job_number = parse_int32(fields[i++]);
-        r.doc_number = parse_int16(fields[i++]);
-        r.borough    = (uint8_t)parse_int32(fields[i++]);
+        r.job_number = parse_simple<int32_t>(fields[i++]);
+        r.doc_number = parse_simple<int16_t>(fields[i++]);
+        r.borough    = (uint8_t)parse_simple<int32_t>(fields[i++]);
 
         r.house_number.assign(fields[i++]);
         r.street_name.assign(fields[i++]);
 
-        r.block = parse_int32(fields[i++]);
-        r.lot   = parse_int16(fields[i++]);
-        r.bin   = parse_int32(fields[i++]);
+        r.block = parse_simple<int32_t>(fields[i++]);
+        r.lot   = parse_simple<int16_t>(fields[i++]);
+        r.bin   = parse_simple<int32_t>(fields[i++]);
 
         // Continue mapping remaining columns sequentially…
         // (You will paste the rest of the mapping here based on column order)

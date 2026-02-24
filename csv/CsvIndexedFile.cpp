@@ -33,7 +33,7 @@ CsvIndexedFile::CsvIndexedFile(const std::string& csvPath)
 CsvIndexedFile::~CsvIndexedFile()
 {
     if (mmap_mem_)
-        munmap(mmap_mem_, mmap_size_);
+        (mmap_mem_, mmap_size_);
 }
 
 // ---------- public ----------

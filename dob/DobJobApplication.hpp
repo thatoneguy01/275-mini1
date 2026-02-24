@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <cstddef>
 #include <compare>
-#include "dob_types.h"
+#include "DobTypes.hpp"
 
 namespace dob {
 
