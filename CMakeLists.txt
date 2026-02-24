@@ -11,5 +11,6 @@ add_subdirectory(dob)
 # add_subdirectory(other_module)
 
 # Example executable using dob
-add_executable(example example_main.cpp)
+add_executable(example example_main.cpp
+        main.cpp)
 target_link_libraries(example PRIVATE dob)
