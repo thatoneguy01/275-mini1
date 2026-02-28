@@ -62,9 +62,14 @@ namespace query {
     public:
         MatchQuery(std::string_view column, const std::any& value);
 
+        // Template for general types
         template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::any>>>
         MatchQuery(std::string_view column, T&& value)
             : MatchQuery(column, std::any(std::forward<T>(value))) {}
+
+        // Specialization for const char* to convert to std::string
+        MatchQuery(std::string_view column, const char* value)
+            : MatchQuery(column, std::any(std::string(value))) {}
 
         bool eval(std::string_view row) override;
     };
@@ -82,9 +87,24 @@ namespace query {
     public:
         RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue);
 
+        // Template for general types
         template<typename T, typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::any> && !std::is_same_v<std::decay_t<U>, std::any>>>
         RangeQuery(std::string_view column, T&& minValue, U&& maxValue)
             : RangeQuery(column, std::any(std::forward<T>(minValue)), std::any(std::forward<U>(maxValue))) {}
+
+        // Specialization for const char* on min
+        template<typename U>
+        RangeQuery(std::string_view column, const char* minValue, U&& maxValue)
+            : RangeQuery(column, std::any(std::string(minValue)), std::any(std::forward<U>(maxValue))) {}
+
+        // Specialization for const char* on max
+        template<typename T>
+        RangeQuery(std::string_view column, T&& minValue, const char* maxValue)
+            : RangeQuery(column, std::any(std::forward<T>(minValue)), std::any(std::string(maxValue))) {}
+
+        // Specialization for const char* on both
+        RangeQuery(std::string_view column, const char* minValue, const char* maxValue)
+            : RangeQuery(column, std::any(std::string(minValue)), std::any(std::string(maxValue))) {}
 
         bool eval(std::string_view row) override;
     };
