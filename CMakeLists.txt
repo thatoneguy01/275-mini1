@@ -9,11 +9,10 @@ project(my_project
 add_subdirectory(dob)
 add_subdirectory(csv)
 add_subdirectory(query)
+add_subdirectory(bench)
 
 # Main library target (INTERFACE library for aggregating component libraries)
 add_library(mini1 INTERFACE)
-
-# ...existing code...
 
 # Link subdirectory libraries
 target_link_libraries(mini1 INTERFACE

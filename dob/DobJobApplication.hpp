@@ -4,12 +4,9 @@
 #include <string>
 #include <string_view>
 #include <array>
-#include <algorithm>
 #include <functional>
-#include <tuple>
 #include <type_traits>
 #include <cstddef>
-#include <compare>
 #include "DobTypes.hpp"
 
 namespace dob {

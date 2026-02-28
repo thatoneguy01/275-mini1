@@ -1,20 +1,35 @@
 #include "CsvIndexedFile.hpp"
 
+#ifdef _WIN32
+#include <windows.h>
+#include <sys/stat.h>
+#else
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 
+#include <fstream>
 #include <stdexcept>
+
+#include "../dob/DobJobApplication.hpp"
 
 // ---------- helpers ----------
 
 uint64_t CsvIndexedFile::file_size(const std::string& path)
 {
+#ifdef _WIN32
+    struct _stat64 st{};
+    if (_stat64(path.c_str(), &st) != 0)
+        throw std::runtime_error("stat failed");
+    return static_cast<uint64_t>(st.st_size);
+#else
     struct stat st{};
     if (stat(path.c_str(), &st) != 0)
         throw std::runtime_error("stat failed");
-    return st.st_size;
+    return static_cast<uint64_t>(st.st_size);
+#endif
 }
 
 // ---------- ctor / dtor ----------
@@ -32,8 +47,25 @@ CsvIndexedFile::CsvIndexedFile(const std::string& csvPath)
 
 CsvIndexedFile::~CsvIndexedFile()
 {
-    if (mmap_mem_)
-        (mmap_mem_, mmap_size_);
+#ifdef _WIN32
+    if (mmap_mem_) {
+        UnmapViewOfFile(mmap_mem_);
+        mmap_mem_ = nullptr;
+    }
+    if (mmap_handle_) {
+        CloseHandle(static_cast<HANDLE>(mmap_handle_));
+        mmap_handle_ = nullptr;
+    }
+#else
+    if (mmap_mem_) {
+        munmap(mmap_mem_, mmap_size_);
+        mmap_mem_ = nullptr;
+    }
+    if (mmap_fd_ >= 0) {
+        close(mmap_fd_);
+        mmap_fd_ = -1;
+    }
+#endif
 }
 
 // ---------- public ----------
@@ -100,21 +132,24 @@ void CsvIndexedFile::ensure_index()
 
 bool CsvIndexedFile::try_load_index()
 {
+#ifdef _WIN32
+    struct _stat64 st{};
+    if (_stat64(idx_path_.c_str(), &st) != 0)
+        return false;
+#else
     struct stat st{};
     if (stat(idx_path_.c_str(), &st) != 0)
         return false;
-
-    // quick header validation
-    int fd = open(idx_path_.c_str(), O_RDONLY);
-    if (fd < 0) return false;
+#endif
 
     CsvIndexHeader h{};
-    if (read(fd, &h, sizeof(h)) != sizeof(h))
-    {
-        close(fd);
+    std::ifstream in(idx_path_, std::ios::binary);
+    if (!in)
         return false;
-    }
-    close(fd);
+
+    in.read(reinterpret_cast<char*>(&h), sizeof(h));
+    if (!in)
+        return false;
 
     if (h.magic != 0x4353564944583031ULL) return false;
     if (h.version != 1) return false;
@@ -180,6 +215,44 @@ void CsvIndexedFile::save_index(const std::vector<uint64_t>& offsets,
 
 void CsvIndexedFile::map_index()
 {
+#ifdef _WIN32
+    HANDLE file = CreateFileA(
+        idx_path_.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr);
+
+    if (file == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("open idx failed");
+    }
+
+    LARGE_INTEGER size{};
+    if (!GetFileSizeEx(file, &size)) {
+        CloseHandle(file);
+        throw std::runtime_error("GetFileSizeEx failed");
+    }
+
+    mmap_size_ = static_cast<size_t>(size.QuadPart);
+
+    HANDLE mapping = CreateFileMappingA(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    CloseHandle(file);
+
+    if (!mapping) {
+        throw std::runtime_error("CreateFileMapping failed");
+    }
+
+    void* view = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+    if (!view) {
+        CloseHandle(mapping);
+        throw std::runtime_error("MapViewOfFile failed");
+    }
+
+    mmap_handle_ = mapping;
+    mmap_mem_ = view;
+#else
     mmap_fd_ = open(idx_path_.c_str(), O_RDONLY);
     if (mmap_fd_ < 0)
         throw std::runtime_error("open idx failed");
@@ -190,12 +263,31 @@ void CsvIndexedFile::map_index()
     mmap_size_ = st.st_size;
 
     mmap_mem_ = mmap(nullptr, mmap_size_, PROT_READ, MAP_SHARED, mmap_fd_, 0);
-    close(mmap_fd_);
 
     if (mmap_mem_ == MAP_FAILED)
         throw std::runtime_error("mmap failed");
+#endif
 
     header_ = reinterpret_cast<CsvIndexHeader*>(mmap_mem_);
     offsets_ = reinterpret_cast<uint64_t*>(
         reinterpret_cast<char*>(mmap_mem_) + sizeof(CsvIndexHeader));
+}
+
+std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {
+    std::vector<dob::DobJobApplication> results;
+
+    for (std::size_t i = 0; i < row_count(); ++i)
+    {
+        std::string row = read_row(i);
+        if (q.eval(row))
+        {
+            try {
+                results.push_back(dob::parse_row(row));
+            } catch (const std::exception& e) {
+                // Handle parse error (e.g., log it)
+            }
+        }
+    }
+
+    return results;
 }
