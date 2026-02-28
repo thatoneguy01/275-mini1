@@ -327,6 +327,16 @@ int main(int argc, char** argv)
 {
     BenchConfig config = parse_args(argc, argv);
 
+    // Open output file
+    std::ofstream output_file("benchmark_results.txt");
+    if (!output_file) {
+        std::cerr << "Failed to open benchmark_results.txt for writing\n";
+        return 1;
+    }
+
+    // Redirect all output to file using a reference to output_file
+    std::ostream& out = output_file;
+
     // Try to find CSV file - check relative to executable, then check parent directory
     std::filesystem::path csv_path(config.csv_path);
     std::filesystem::path idx_path = csv_path;
@@ -345,7 +355,8 @@ int main(int argc, char** argv)
     // Check if CSV exists after path resolution
     if (!std::filesystem::exists(csv_path)) {
         if (config.generate_csv) {
-            std::cout << "Generating synthetic CSV...\n";
+            out << "Generating synthetic CSV...\n";
+            out.flush();
             try {
                 write_csv(csv_path, config);
             } catch (const std::exception& e) {
@@ -363,162 +374,235 @@ int main(int argc, char** argv)
     }
 
     auto csv_size = std::filesystem::file_size(csv_path);
-    std::cout << "======================================================\n";
-    std::cout << "CSV file: " << config.csv_path << '\n';
-    std::cout << "CSV size: " << (static_cast<double>(csv_size) / (1024.0 * 1024.0)) << " MB\n";
-    std::cout << "Index iters: " << config.index_build_iters
-              << "  Query iters: " << config.query_iters << '\n';
-    std::cout << "======================================================\n\n";
+    out << "======================================================\n";
+    out << "CSV file: " << config.csv_path << '\n';
+    out << "CSV size: " << (static_cast<double>(csv_size) / (1024.0 * 1024.0)) << " MB\n";
+    out << "Index iters: " << config.index_build_iters
+        << "  Query iters: " << config.query_iters << '\n';
+    out << "======================================================\n\n";
 
     // ===== INDEX BENCHMARKS =====
-    std::cout << "--- INDEX BENCHMARKS ---\n";
+    out << "--- INDEX BENCHMARKS ---\n";
+    std::cout << "Running index_build benchmark...\n";
     BenchResult index_build = run_bench("index_build", config.index_build_iters, [&]() {
         std::error_code ec;
         std::filesystem::remove(idx_path, ec);
         CsvIndexedFile csv_temp(csv_path.string());
         (void)csv_temp.row_count();
     });
-    print_result(index_build);
+    out << std::left << std::setw(30) << index_build.name
+        << "  iters=" << std::setw(4) << index_build.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << index_build.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << index_build.avg_ms << '\n';
 
+    std::cout << "Running index_load benchmark...\n";
     BenchResult index_load = run_bench("index_load", config.index_build_iters, [&]() {
         CsvIndexedFile csv_temp(csv_path.string());
         (void)csv_temp.row_count();
     });
-    print_result(index_load);
+    out << std::left << std::setw(30) << index_load.name
+        << "  iters=" << std::setw(4) << index_load.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << index_load.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << index_load.avg_ms << '\n';
 
 
     // ===== QUERY EXECUTION BENCHMARKS =====
-    std::cout << "\n--- QUERY EXECUTION BENCHMARKS ---\n";
+    out << "\n--- QUERY EXECUTION BENCHMARKS ---\n";
 
     // Cache the CsvIndexedFile for all query executions
     CsvIndexedFile csv(csv_path.string());
-    std::cout << "Loaded CSV with " << csv.row_count() << " rows\n";
-    std::cout << "Running " << config.query_iters << " iterations per query...\n\n";
+    out << "Loaded CSV with " << csv.row_count() << " rows\n";
+    out << "Running " << config.query_iters << " iterations per query...\n\n";
+    std::cout << "Running query benchmarks...\n";
 
     std::size_t sink = 0;
 
+    std::cout << "  query_simple_match...\n";
     auto simple_match_query = make_simple_match_query();
     BenchResult query_simple_match = run_bench("query_simple_match", config.query_iters, [&]() {
         sink += csv.query(*simple_match_query).size();
     });
     query_simple_match.items = sink;
-    std::cout << "  Result: " << query_simple_match.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_simple_match);
+    out << "  Result: " << query_simple_match.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_simple_match.name
+        << "  iters=" << std::setw(4) << query_simple_match.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_simple_match.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_simple_match.avg_ms
+        << "  items=" << query_simple_match.items << '\n';
 
+    std::cout << "  query_simple_range...\n";
     sink = 0;
     auto simple_range_query = make_simple_range_query();
     BenchResult query_simple_range = run_bench("query_simple_range", config.query_iters, [&]() {
         sink += csv.query(*simple_range_query).size();
     });
     query_simple_range.items = sink;
-    std::cout << "  Result: " << query_simple_range.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_simple_range);
+    out << "  Result: " << query_simple_range.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_simple_range.name
+        << "  iters=" << std::setw(4) << query_simple_range.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_simple_range.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_simple_range.avg_ms
+        << "  items=" << query_simple_range.items << '\n';
 
+    std::cout << "  query_simple_string...\n";
     sink = 0;
     auto simple_string_query = make_simple_string_match_query();
     BenchResult query_simple_string = run_bench("query_simple_string", config.query_iters, [&]() {
         sink += csv.query(*simple_string_query).size();
     });
     query_simple_string.items = sink;
-    std::cout << "  Result: " << query_simple_string.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_simple_string);
+    out << "  Result: " << query_simple_string.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_simple_string.name
+        << "  iters=" << std::setw(4) << query_simple_string.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_simple_string.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_simple_string.avg_ms
+        << "  items=" << query_simple_string.items << '\n';
 
+    std::cout << "  query_and_two_cond...\n";
     sink = 0;
     auto and_two_query = make_and_query_two_conditions();
     BenchResult query_and_two = run_bench("query_and_two_cond", config.query_iters, [&]() {
         sink += csv.query(*and_two_query).size();
     });
     query_and_two.items = sink;
-    std::cout << "  Result: " << query_and_two.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_and_two);
+    out << "  Result: " << query_and_two.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_and_two.name
+        << "  iters=" << std::setw(4) << query_and_two.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_and_two.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_and_two.avg_ms
+        << "  items=" << query_and_two.items << '\n';
 
+    std::cout << "  query_and_three_cond...\n";
     sink = 0;
     auto and_three_query = make_and_query_three_conditions();
     BenchResult query_and_three = run_bench("query_and_three_cond", config.query_iters, [&]() {
         sink += csv.query(*and_three_query).size();
     });
     query_and_three.items = sink;
-    std::cout << "  Result: " << query_and_three.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_and_three);
+    out << "  Result: " << query_and_three.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_and_three.name
+        << "  iters=" << std::setw(4) << query_and_three.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_and_three.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_and_three.avg_ms
+        << "  items=" << query_and_three.items << '\n';
 
+    std::cout << "  query_and_four_cond...\n";
     sink = 0;
     auto and_four_query = make_and_query_four_conditions();
     BenchResult query_and_four = run_bench("query_and_four_cond", config.query_iters, [&]() {
         sink += csv.query(*and_four_query).size();
     });
     query_and_four.items = sink;
-    std::cout << "  Result: " << query_and_four.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_and_four);
+    out << "  Result: " << query_and_four.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_and_four.name
+        << "  iters=" << std::setw(4) << query_and_four.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_and_four.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_and_four.avg_ms
+        << "  items=" << query_and_four.items << '\n';
 
+    std::cout << "  query_or_two_cond...\n";
     sink = 0;
     auto or_two_query = make_or_query_two_conditions();
     BenchResult query_or_two = run_bench("query_or_two_cond", config.query_iters, [&]() {
         sink += csv.query(*or_two_query).size();
     });
     query_or_two.items = sink;
-    std::cout << "  Result: " << query_or_two.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_or_two);
+    out << "  Result: " << query_or_two.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_or_two.name
+        << "  iters=" << std::setw(4) << query_or_two.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_or_two.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_or_two.avg_ms
+        << "  items=" << query_or_two.items << '\n';
 
+    std::cout << "  query_or_four_cond...\n";
     sink = 0;
     auto or_four_query = make_or_query_four_conditions();
     BenchResult query_or_four = run_bench("query_or_four_cond", config.query_iters, [&]() {
         sink += csv.query(*or_four_query).size();
     });
     query_or_four.items = sink;
-    std::cout << "  Result: " << query_or_four.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_or_four);
+    out << "  Result: " << query_or_four.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_or_four.name
+        << "  iters=" << std::setw(4) << query_or_four.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_or_four.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_or_four.avg_ms
+        << "  items=" << query_or_four.items << '\n';
 
+    std::cout << "  query_not...\n";
     sink = 0;
     auto not_query = make_not_query();
     BenchResult query_not = run_bench("query_not", config.query_iters, [&]() {
         sink += csv.query(*not_query).size();
     });
     query_not.items = sink;
-    std::cout << "  Result: " << query_not.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_not);
+    out << "  Result: " << query_not.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_not.name
+        << "  iters=" << std::setw(4) << query_not.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_not.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_not.avg_ms
+        << "  items=" << query_not.items << '\n';
 
+    std::cout << "  query_complex_nested...\n";
     sink = 0;
     auto complex_nested_query = make_complex_nested_query();
     BenchResult query_complex_nested = run_bench("query_complex_nested", config.query_iters, [&]() {
         sink += csv.query(*complex_nested_query).size();
     });
     query_complex_nested.items = sink;
-    std::cout << "  Result: " << query_complex_nested.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_complex_nested);
+    out << "  Result: " << query_complex_nested.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_complex_nested.name
+        << "  iters=" << std::setw(4) << query_complex_nested.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_complex_nested.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_complex_nested.avg_ms
+        << "  items=" << query_complex_nested.items << '\n';
 
+    std::cout << "  query_range_heavy...\n";
     sink = 0;
     auto range_heavy_query = make_range_heavy_query();
     BenchResult query_range_heavy = run_bench("query_range_heavy", config.query_iters, [&]() {
         sink += csv.query(*range_heavy_query).size();
     });
     query_range_heavy.items = sink;
-    std::cout << "  Result: " << query_range_heavy.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_range_heavy);
+    out << "  Result: " << query_range_heavy.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_range_heavy.name
+        << "  iters=" << std::setw(4) << query_range_heavy.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_range_heavy.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_range_heavy.avg_ms
+        << "  items=" << query_range_heavy.items << '\n';
 
+    std::cout << "  query_mixed...\n";
     sink = 0;
     auto mixed_query = make_mixed_query();
     BenchResult query_mixed = run_bench("query_mixed", config.query_iters, [&]() {
         sink += csv.query(*mixed_query).size();
     });
     query_mixed.items = sink;
-    std::cout << "  Result: " << query_mixed.items << " total matches across "
-              << config.query_iters << " iterations ";
-    print_result(query_mixed);
+    out << "  Result: " << query_mixed.items << " total matches across "
+        << config.query_iters << " iterations ";
+    out << std::left << std::setw(30) << query_mixed.name
+        << "  iters=" << std::setw(4) << query_mixed.iterations
+        << "  total_ms=" << std::setw(10) << std::fixed << std::setprecision(2) << query_mixed.total_ms
+        << "  avg_ms=" << std::setw(8) << std::fixed << std::setprecision(2) << query_mixed.avg_ms
+        << "  items=" << query_mixed.items << '\n';
 
-    std::cout << "\n======================================================\n";
-    std::cout << "Benchmarks complete!\n";
-    std::cout << "======================================================\n";
+    out << "\n======================================================\n";
+    out << "Benchmarks complete!\n";
+    out << "======================================================\n";
+    out.flush();
+    output_file.close();
+
+    std::cout << "Benchmark results written to benchmark_results.txt\n";
 
     return 0;
 }
