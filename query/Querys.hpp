@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <any>
+#include <type_traits>
 #include "../dob/DobParseUtils.hpp"
 
 namespace query {
@@ -61,7 +62,7 @@ namespace query {
     public:
         MatchQuery(std::string_view column, const std::any& value);
 
-        template<typename T>
+        template<typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::any>>>
         MatchQuery(std::string_view column, T&& value)
             : MatchQuery(column, std::any(std::forward<T>(value))) {}
 
@@ -81,7 +82,7 @@ namespace query {
     public:
         RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue);
 
-        template<typename T, typename U>
+        template<typename T, typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::any> && !std::is_same_v<std::decay_t<U>, std::any>>>
         RangeQuery(std::string_view column, T&& minValue, U&& maxValue)
             : RangeQuery(column, std::any(std::forward<T>(minValue)), std::any(std::forward<U>(maxValue))) {}
 
