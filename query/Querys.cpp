@@ -30,6 +30,40 @@ namespace query {
             return field == "1" || field == "true" || field == "True" || field == "TRUE";
         }
 
+        // Safe string extraction from std::any - handles const char*
+        std::string safe_any_cast_string(const std::any& value) {
+            if (value.type() == typeid(std::string)) {
+                return std::any_cast<std::string>(value);
+            } else if (value.type() == typeid(const char*)) {
+                return std::string(std::any_cast<const char*>(value));
+            } else if (value.type() == typeid(char*)) {
+                return std::string(std::any_cast<char*>(value));
+            }
+            throw std::bad_any_cast();
+        }
+
+        // Safe numeric extraction from std::any
+        double safe_any_cast_numeric(const std::any& value) {
+            if (value.type() == typeid(double)) {
+                return std::any_cast<double>(value);
+            } else if (value.type() == typeid(int)) {
+                return static_cast<double>(std::any_cast<int>(value));
+            } else if (value.type() == typeid(long)) {
+                return static_cast<double>(std::any_cast<long>(value));
+            } else if (value.type() == typeid(float)) {
+                return static_cast<double>(std::any_cast<float>(value));
+            }
+            throw std::bad_any_cast();
+        }
+
+        // Safe bool extraction from std::any
+        bool safe_any_cast_bool(const std::any& value) {
+            if (value.type() == typeid(bool)) {
+                return std::any_cast<bool>(value);
+            }
+            throw std::bad_any_cast();
+        }
+
     }
 
     // Query implementations
@@ -96,17 +130,17 @@ namespace query {
         switch (category_) {
             case dob::ColumnCategory::STRING: {
                 std::string parsed = parse_string(field);
-                std::string val = std::any_cast<std::string>(value_);
+                std::string val = safe_any_cast_string(value_);
                 return parsed == val;
             }
             case dob::ColumnCategory::BOOLEAN: {
                 bool parsed = parse_bool(field);
-                bool val =std::any_cast<bool>(value_);
+                bool val = safe_any_cast_bool(value_);
                 return parsed == val;
             }
             case dob::ColumnCategory::NUMERIC: {
                 double parsed = parse_numeric(field);
-                double val = std::any_cast<double>(value_);
+                double val = safe_any_cast_numeric(value_);
                 return parsed == val;
             }
             default:
@@ -149,16 +183,16 @@ namespace query {
         if (category_ == dob::ColumnCategory::STRING) {
             // Range check on string values
             std::string parsed = parse_string(field);
-            std::string minVal = std::any_cast<std::string>(minValue_);
-            std::string maxVal = std::any_cast<std::string>(maxValue_);
+            std::string minVal = safe_any_cast_string(minValue_);
+            std::string maxVal = safe_any_cast_string(maxValue_);
             return parsed >= minVal && parsed <= maxVal;
         } else if (category_ == dob::ColumnCategory::BOOLEAN) {
             throw std::invalid_argument("Range queries are not supported for BOOL columns");
         } else {
             // Range check on numeric values
             double parsed = parse_numeric(field);
-            double minVal = std::any_cast<double>(minValue_);
-            double maxVal = std::any_cast<double>(maxValue_);
+            double minVal = safe_any_cast_numeric(minValue_);
+            double maxVal = safe_any_cast_numeric(maxValue_);
             return parsed >= minVal && parsed <= maxVal;
         }
     };
