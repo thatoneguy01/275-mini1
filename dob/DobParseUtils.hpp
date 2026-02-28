@@ -14,84 +14,100 @@ namespace dob {
     // Column category for query evaluation
     enum class ColumnCategory { STRING, BOOLEAN, NUMERIC };
 
-    // Column info map: column name -> (index, category)
+    // Column info map: object field name -> (csv index, category)
+    // Types are based on DobJobApplication struct field types and actual CSV data
     inline const std::unordered_map<std::string_view, std::pair<int, ColumnCategory>> COLUMN_INFO_MAP = {
-        // Numeric columns
-        {"job_number", {0, ColumnCategory::NUMERIC}},
-        {"doc_number", {1, ColumnCategory::NUMERIC}},
-        {"borough", {2, ColumnCategory::NUMERIC}},
-        {"block", {5, ColumnCategory::NUMERIC}},
-        {"lot", {6, ColumnCategory::NUMERIC}},
-        {"bin", {7, ColumnCategory::NUMERIC}},
-        {"community_board", {11, ColumnCategory::NUMERIC}},
-        {"council_district", {12, ColumnCategory::NUMERIC}},
-        {"census_tract", {13, ColumnCategory::NUMERIC}},
-        {"filing_date", {22, ColumnCategory::NUMERIC}},
-        {"issuance_date", {23, ColumnCategory::NUMERIC}},
-        {"expiration_date", {24, ColumnCategory::NUMERIC}},
-        {"latest_action_date", {25, ColumnCategory::NUMERIC}},
-        {"special_action_date", {26, ColumnCategory::NUMERIC}},
-        {"signoff_date", {27, ColumnCategory::NUMERIC}},
-        {"existing_dwelling_units", {44, ColumnCategory::NUMERIC}},
-        {"proposed_dwelling_units", {45, ColumnCategory::NUMERIC}},
-        {"existing_stories", {46, ColumnCategory::NUMERIC}},
-        {"proposed_stories", {47, ColumnCategory::NUMERIC}},
-        {"existing_height", {48, ColumnCategory::NUMERIC}},
-        {"proposed_height", {49, ColumnCategory::NUMERIC}},
-        {"initial_cost", {50, ColumnCategory::NUMERIC}},
-        {"total_est_fee", {51, ColumnCategory::NUMERIC}},
-        {"paid_fee", {52, ColumnCategory::NUMERIC}},
-        {"job_no_good_count", {68, ColumnCategory::NUMERIC}},
-        {"latitude", {85, ColumnCategory::NUMERIC}},
-        {"longitude", {86, ColumnCategory::NUMERIC}},
+        // Core identifiers (all NUMERIC in struct)
+        {"job_number", {0, ColumnCategory::NUMERIC}},              // Job # (int32_t)
+        {"doc_number", {1, ColumnCategory::NUMERIC}},              // Doc # (int16_t)
+        {"borough", {2, ColumnCategory::NUMERIC}},                 // Borough (uint8_t)
+        {"bin", {7, ColumnCategory::NUMERIC}},                     // Bin # (int32_t)
 
-        // String columns
-        {"house_number", {3, ColumnCategory::STRING}},
-        {"street_name", {4, ColumnCategory::STRING}},
-        {"city", {8, ColumnCategory::STRING}},
-        {"state", {9, ColumnCategory::STRING}},
-        {"zip", {10, ColumnCategory::STRING}},
-        {"nta_name", {14, ColumnCategory::STRING}},
-        {"job_type", {15, ColumnCategory::STRING}},
-        {"job_status", {16, ColumnCategory::STRING}},
-        {"building_type", {17, ColumnCategory::STRING}},
-        {"building_class", {18, ColumnCategory::STRING}},
-        {"work_type", {19, ColumnCategory::STRING}},
-        {"permit_type", {20, ColumnCategory::STRING}},
-        {"filing_status", {21, ColumnCategory::STRING}},
-        {"owner_type", {28, ColumnCategory::STRING}},
-        {"owner_name", {29, ColumnCategory::STRING}},
-        {"owner_business_name", {30, ColumnCategory::STRING}},
-        {"owner_house_number", {31, ColumnCategory::STRING}},
-        {"owner_street_name", {32, ColumnCategory::STRING}},
-        {"owner_city", {33, ColumnCategory::STRING}},
-        {"owner_state", {34, ColumnCategory::STRING}},
-        {"owner_zip", {35, ColumnCategory::STRING}},
-        {"owner_phone", {36, ColumnCategory::STRING}},
-        {"applicant_first_name", {37, ColumnCategory::STRING}},
-        {"applicant_last_name", {38, ColumnCategory::STRING}},
-        {"applicant_business_name", {39, ColumnCategory::STRING}},
-        {"applicant_professional_title", {40, ColumnCategory::STRING}},
-        {"applicant_license", {41, ColumnCategory::STRING}},
-        {"applicant_professional_cert", {42, ColumnCategory::STRING}},
-        {"applicant_business_phone", {43, ColumnCategory::STRING}},
-        {"zoning_district_1", {53, ColumnCategory::STRING}},
-        {"zoning_district_2", {54, ColumnCategory::STRING}},
-        {"zoning_district_3", {55, ColumnCategory::STRING}},
-        {"zoning_district_4", {56, ColumnCategory::STRING}},
-        {"zoning_district_5", {57, ColumnCategory::STRING}},
-        {"special_district_1", {58, ColumnCategory::STRING}},
-        {"special_district_2", {59, ColumnCategory::STRING}},
+        // Location
+        {"house_number", {3, ColumnCategory::STRING}},             // House # (std::string)
+        {"street_name", {4, ColumnCategory::STRING}},              // Street Name (std::string)
+        {"block", {5, ColumnCategory::NUMERIC}},                   // Block (int32_t)
+        {"lot", {6, ColumnCategory::NUMERIC}},                     // Lot (int16_t)
+        {"city", {76, ColumnCategory::STRING}},                    // City (std::string)
+        {"state", {77, ColumnCategory::STRING}},                   // State (std::string)
+        {"zip", {78, ColumnCategory::STRING}},                     // Zip (std::string)
+        {"community_board", {13, ColumnCategory::NUMERIC}},        // Community - Board (int16_t)
+        {"council_district", {92, ColumnCategory::NUMERIC}},       // GIS_COUNCIL_DISTRICT (int16_t, see struct)
+        {"census_tract", {93, ColumnCategory::NUMERIC}},           // GIS_CENSUS_TRACT (int32_t, see struct)
+        {"nta_name", {94, ColumnCategory::STRING}},                // GIS_NTA_NAME (std::string)
+        {"latitude", {90, ColumnCategory::NUMERIC}},               // GIS_LATITUDE (double)
+        {"longitude", {91, ColumnCategory::NUMERIC}},              // GIS_LONGITUDE (double)
 
-        // Boolean columns
-        {"residential", {60, ColumnCategory::BOOLEAN}},
-        {"plumbing", {61, ColumnCategory::BOOLEAN}},
-        {"sprinkler", {62, ColumnCategory::BOOLEAN}},
-        {"fire_alarm", {63, ColumnCategory::BOOLEAN}},
-        {"mechanical", {64, ColumnCategory::BOOLEAN}},
-        {"boiler", {65, ColumnCategory::BOOLEAN}},
-        {"fuel_burning", {66, ColumnCategory::BOOLEAN}},
-        {"curb_cut", {67, ColumnCategory::BOOLEAN}},
+        // Job classification
+        {"job_type", {8, ColumnCategory::STRING}},                 // Job Type (std::string)
+        {"job_status", {9, ColumnCategory::STRING}},               // Job Status (std::string)
+        {"building_type", {12, ColumnCategory::STRING}},           // Building Type (std::string)
+        {"building_class", {88, ColumnCategory::STRING}},          // BUILDING_CLASS (char[4])
+        {"work_type", {80, ColumnCategory::STRING}},               // Job Description (std::string)
+        {"permit_type", {21, ColumnCategory::STRING}},             // eFiling Filed (std::string)
+        {"filing_status", {48, ColumnCategory::STRING}},           // Fee Status (std::string)
+
+        // Dates (all NUMERIC - stored as Date type which is numeric)
+        {"filing_date", {40, ColumnCategory::NUMERIC}},            // Pre- Filing Date (Date)
+        {"issuance_date", {44, ColumnCategory::NUMERIC}},          // Approved (Date)
+        {"expiration_date", {45, ColumnCategory::NUMERIC}},        // Fully Permitted (Date)
+        {"latest_action_date", {11, ColumnCategory::NUMERIC}},     // Latest Action Date (Date)
+        {"special_action_date", {87, ColumnCategory::NUMERIC}},    // SPECIAL_ACTION_DATE (Date)
+        {"signoff_date", {85, ColumnCategory::NUMERIC}},           // SIGNOFF_DATE (Date)
+
+        // Owner info (all STRING except maybe some)
+        {"owner_type", {69, ColumnCategory::STRING}},              // Owner Type (std::string)
+        {"owner_name", {71, ColumnCategory::STRING}},              // Owner's First Name (std::string - combined)
+        {"owner_business_name", {73, ColumnCategory::STRING}},     // Owner's Business Name (std::string)
+        {"owner_house_number", {74, ColumnCategory::STRING}},      // Owner's House Number (std::string)
+        {"owner_street_name", {75, ColumnCategory::STRING}},       // Owner'sHouse Street Name (std::string)
+        {"owner_city", {76, ColumnCategory::STRING}},              // City (std::string, shared)
+        {"owner_state", {77, ColumnCategory::STRING}},             // State (std::string, shared)
+        {"owner_zip", {78, ColumnCategory::STRING}},               // Zip (std::string, shared)
+        {"owner_phone", {79, ColumnCategory::STRING}},             // Owner'sPhone # (std::string)
+
+        // Applicant info (all STRING)
+        {"applicant_first_name", {35, ColumnCategory::STRING}},    // Applicant's First Name (std::string)
+        {"applicant_last_name", {36, ColumnCategory::STRING}},     // Applicant's Last Name (std::string)
+        {"applicant_professional_title", {37, ColumnCategory::STRING}}, // Applicant Professional Title (std::string)
+        {"applicant_license", {38, ColumnCategory::STRING}},       // Applicant License # (std::string)
+        {"applicant_professional_cert", {39, ColumnCategory::STRING}}, // Professional Cert (std::string)
+        {"applicant_business_name", {39, ColumnCategory::STRING}}, // Professional Cert (std::string - mapped, check if needed)
+
+        // Dimensions / units (all NUMERIC - stored as int16_t or int32_t)
+        {"existing_dwelling_units", {59, ColumnCategory::NUMERIC}},    // Existing Dwelling Units (int16_t)
+        {"proposed_dwelling_units", {60, ColumnCategory::NUMERIC}},    // Proposed Dwelling Units (int16_t)
+        {"existing_stories", {55, ColumnCategory::NUMERIC}},           // ExistingNo. of Stories (int16_t)
+        {"proposed_stories", {56, ColumnCategory::NUMERIC}},           // Proposed No. of Stories (int16_t)
+        {"existing_height", {57, ColumnCategory::NUMERIC}},            // Existing Height (int32_t)
+        {"proposed_height", {58, ColumnCategory::NUMERIC}},            // Proposed Height (int32_t)
+
+        // Financial (all NUMERIC - stored as int64_t in cents)
+        {"initial_cost_cents", {46, ColumnCategory::NUMERIC}},     // Initial Cost (int64_t)
+        {"total_est_fee_cents", {47, ColumnCategory::NUMERIC}},    // Total Est. Fee (int64_t)
+        {"paid_fee_cents", {41, ColumnCategory::NUMERIC}},         // Paid (int64_t)
+
+        // Zoning (all STRING)
+        {"zoning_district_1", {64, ColumnCategory::STRING}},       // Zoning Dist1 (std::string)
+        {"zoning_district_2", {65, ColumnCategory::STRING}},       // Zoning Dist2 (std::string)
+        {"zoning_district_3", {66, ColumnCategory::STRING}},       // Zoning Dist3 (std::string)
+        {"zoning_district_4", {67, ColumnCategory::STRING}},       // Special District 1 (std::string)
+        {"zoning_district_5", {68, ColumnCategory::STRING}},       // Special District 2 (std::string)
+        {"special_district_1", {67, ColumnCategory::STRING}},      // Special District 1 (std::string)
+        {"special_district_2", {68, ColumnCategory::STRING}},      // Special District 2 (std::string)
+
+        // Flags (all BOOLEAN - struct Flags with bit fields)
+        {"residential", {15, ColumnCategory::BOOLEAN}},            // Landmarked (uint8_t:1)
+        {"plumbing", {22, ColumnCategory::BOOLEAN}},               // Plumbing (uint8_t:1)
+        {"sprinkler", {28, ColumnCategory::BOOLEAN}},              // Sprinkler (uint8_t:1)
+        {"fire_alarm", {29, ColumnCategory::BOOLEAN}},             // Fire Alarm (uint8_t:1)
+        {"mechanical", {23, ColumnCategory::BOOLEAN}},             // Mechanical (uint8_t:1)
+        {"boiler", {24, ColumnCategory::BOOLEAN}},                 // Boiler (uint8_t:1)
+        {"fuel_burning", {25, ColumnCategory::BOOLEAN}},           // Fuel Burning (uint8_t:1)
+        {"curb_cut", {32, ColumnCategory::BOOLEAN}},               // Curb Cut (uint8_t:1)
+
+        // Other numeric fields
+        {"job_no_good_count", {89, ColumnCategory::NUMERIC}},      // JOB_NO_GOOD_COUNT (uint8_t)
     };
 
     // Get column index and category by name

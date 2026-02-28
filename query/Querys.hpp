@@ -61,6 +61,10 @@ namespace query {
     public:
         MatchQuery(std::string_view column, const std::any& value);
 
+        template<typename T>
+        MatchQuery(std::string_view column, T&& value)
+            : MatchQuery(column, std::any(std::forward<T>(value))) {}
+
         bool eval(std::string_view row) override;
     };
 
@@ -76,6 +80,10 @@ namespace query {
 
     public:
         RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue);
+
+        template<typename T, typename U>
+        RangeQuery(std::string_view column, T&& minValue, U&& maxValue)
+            : RangeQuery(column, std::any(std::forward<T>(minValue)), std::any(std::forward<U>(maxValue))) {}
 
         bool eval(std::string_view row) override;
     };

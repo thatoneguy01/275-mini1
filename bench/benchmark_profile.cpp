@@ -18,7 +18,7 @@ std::unique_ptr<query::Query> make_simple_match_query()
 int main(int argc, char** argv)
 {
     std::string csv_path = "DOB_Job_Application_Filings_20260215.csv";
-    std::size_t query_iterations = 100;
+    std::size_t query_iterations = 1;
 
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
