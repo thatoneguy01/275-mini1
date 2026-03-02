@@ -3,6 +3,7 @@
 #include <any>
 #include <stdexcept>
 #include <typeinfo>
+#include <charconv>
 #include "../dob/DobCsv.hpp"
 
 namespace query {
@@ -10,10 +11,26 @@ namespace query {
     namespace {
         // ...existing code...
 
-        // Parse field to int64 (for numeric columns)
+        // Parse field to double (for numeric columns)
         double parse_numeric(std::string_view field) {
+            // Strip quotes if present
+            if (!field.empty() && field.front() == '"' && field.back() == '"') {
+                field = field.substr(1, field.size() - 2);
+            }
+
+            // Handle empty field
+            if (field.empty()) {
+                return 0.0;
+            }
+
             double val = 0.0;
-            std::from_chars(field.data(), field.data() + field.size(), val);
+            auto result = std::from_chars(field.data(), field.data() + field.size(), val);
+
+            // Check if parsing was successful
+            if (result.ec != std::errc{}) {
+                return 0.0;
+            }
+
             return val;
         }
 
@@ -27,7 +44,13 @@ namespace query {
 
         // Parse bool field
         bool parse_bool(std::string_view field) {
-            return field == "1" || field == "true" || field == "True" || field == "TRUE";
+            // Strip quotes if present
+            if (!field.empty() && field.front() == '"' && field.back() == '"') {
+                field = field.substr(1, field.size() - 2);
+            }
+
+            return field == "1" || field == "true" || field == "True" || field == "TRUE" ||
+                   field == "X" || field == "x" || field == "Y" || field == "y";
         }
 
         // Safe string extraction from std::any - handles const char*
