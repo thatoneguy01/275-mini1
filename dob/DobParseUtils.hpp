@@ -18,9 +18,9 @@ namespace dob {
     // Types are based on DobJobApplication struct field types and actual CSV data
     inline const std::unordered_map<std::string_view, std::pair<int, ColumnCategory>> COLUMN_INFO_MAP = {
         // Core identifiers (all NUMERIC in struct)
-        {"job_number", {0, ColumnCategory::NUMERIC}},              // Job # (int32_t)
+        {"job_number", {0, ColumnCategory::NUMERIC}},              // Job # (int32_t) - CSV: "321386512" (numeric string)
         {"doc_number", {1, ColumnCategory::NUMERIC}},              // Doc # (int16_t)
-        {"borough", {2, ColumnCategory::NUMERIC}},                 // Borough (uint8_t)
+        {"borough", {2, ColumnCategory::STRING}},                  // Borough (STRING - CSV: "BROOKLYN", "QUEENS", "BRONX")
         {"bin", {7, ColumnCategory::NUMERIC}},                     // Bin # (int32_t)
 
         // Location

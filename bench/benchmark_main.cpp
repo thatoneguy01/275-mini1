@@ -113,8 +113,9 @@ std::unique_ptr<query::Query> make_simple_match_query()
 
 std::unique_ptr<query::Query> make_simple_range_query()
 {
+    // job_number is NUMERIC - parse CSV numeric strings automatically
     return std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0);
+        "job_number", 300000000.0, 350000000.0);
 }
 
 std::unique_ptr<query::Query> make_simple_string_match_query()
@@ -140,7 +141,7 @@ std::unique_ptr<query::Query> make_and_query_three_conditions()
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0));
+        "job_number", 300000000.0, 350000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "building_type", "1-2-3 FAMILY"));
 
@@ -153,7 +154,7 @@ std::unique_ptr<query::Query> make_and_query_four_conditions()
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0));
+        "job_number", 300000000.0, 350000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "job_status", "X"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
@@ -207,7 +208,7 @@ std::unique_ptr<query::Query> make_complex_nested_query()
 
     std::vector<std::unique_ptr<query::Query>> and_right;
     and_right.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0));
+        "job_number", 300000000.0, 350000000.0));
     and_right.emplace_back(std::make_unique<query::MatchQuery>(
         "borough", "QUEENS"));
     auto right = std::make_unique<query::AndQuery>(std::move(and_right));
@@ -223,7 +224,7 @@ std::unique_ptr<query::Query> make_range_heavy_query()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0));
+        "job_number", 300000000.0, 350000000.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
         "community_board", 300.0, 320.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
@@ -238,7 +239,7 @@ std::unique_ptr<query::Query> make_mixed_query()
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 300000000.0, 400000000.0));
+        "job_number", 300000000.0, 350000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
         "job_status", "X"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
