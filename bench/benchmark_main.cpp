@@ -108,28 +108,28 @@ void write_csv(const std::filesystem::path& path, const BenchConfig& config)
 
 std::unique_ptr<query::Query> make_simple_match_query()
 {
-    return std::make_unique<query::MatchQuery>("borough", std::any(3.0));
+    return std::make_unique<query::MatchQuery>("borough", 3.0);
 }
 
 std::unique_ptr<query::Query> make_simple_range_query()
 {
     return std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(25000.0));
+        "job_number", 1000.0, 25000.0);
 }
 
 std::unique_ptr<query::Query> make_simple_string_match_query()
 {
     return std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED")));
+        "job_status", "ISSUED");
 }
 
 std::unique_ptr<query::Query> make_and_query_two_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -138,11 +138,11 @@ std::unique_ptr<query::Query> make_and_query_three_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(50000.0)));
+        "job_number", 1000.0, 50000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -151,13 +151,13 @@ std::unique_ptr<query::Query> make_and_query_four_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(50000.0)));
+        "job_number", 1000.0, 50000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "filing_date", std::any(20200101.0), std::any(20240101.0)));
+        "filing_date", 20200101.0, 20240101.0));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -166,9 +166,9 @@ std::unique_ptr<query::Query> make_or_query_two_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(2.0)));
+        "borough", 2.0));
 
     return std::make_unique<query::OrQuery>(std::move(subs));
 }
@@ -177,13 +177,13 @@ std::unique_ptr<query::Query> make_or_query_four_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("PENDING"))));
+        "job_status", "PENDING"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("APPROVED"))));
+        "job_status", "APPROVED"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("COMPLETED"))));
+        "job_status", "COMPLETED"));
 
     return std::make_unique<query::OrQuery>(std::move(subs));
 }
@@ -191,7 +191,7 @@ std::unique_ptr<query::Query> make_or_query_four_conditions()
 std::unique_ptr<query::Query> make_not_query()
 {
     auto sub = std::make_unique<query::MatchQuery>(
-        "residential", std::any(true));
+        "residential", true);
     return std::make_unique<query::NotQuery>(std::move(sub));
 }
 
@@ -200,16 +200,16 @@ std::unique_ptr<query::Query> make_complex_nested_query()
     // ((A AND B) OR (C AND D))
     std::vector<std::unique_ptr<query::Query>> and_left;
     and_left.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     and_left.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
     auto left = std::make_unique<query::AndQuery>(std::move(and_left));
 
     std::vector<std::unique_ptr<query::Query>> and_right;
     and_right.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(50000.0)));
+        "job_number", 1000.0, 50000.0));
     and_right.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("PENDING"))));
+        "job_status", "PENDING"));
     auto right = std::make_unique<query::AndQuery>(std::move(and_right));
 
     std::vector<std::unique_ptr<query::Query>> or_subs;
@@ -223,11 +223,11 @@ std::unique_ptr<query::Query> make_range_heavy_query()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(50000.0)));
+        "job_number", 1000.0, 50000.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "filing_date", std::any(20200101.0), std::any(20240101.0)));
+        "filing_date", 20200101.0, 20240101.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "latitude", std::any(40.5), std::any(40.9)));
+        "latitude", 40.5, 40.9));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -236,13 +236,13 @@ std::unique_ptr<query::Query> make_mixed_query()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", std::any(1.0)));
+        "borough", 1.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", std::any(1000.0), std::any(50000.0)));
+        "job_number", 1000.0, 50000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", std::any(std::string("ISSUED"))));
+        "job_status", "ISSUED"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "residential", std::any(true)));
+        "residential", true));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -416,11 +416,17 @@ int main(int argc, char** argv)
     std::cout << "Running query benchmarks...\n";
 
     std::size_t sink = 0;
+    std::size_t csv_total_rows = csv.row_count();
 
     std::cout << "  query_simple_match...\n";
     auto simple_match_query = make_simple_match_query();
     BenchResult query_simple_match = run_bench("query_simple_match", config.query_iters, [&]() {
-        sink += csv.query(*simple_match_query).size();
+        auto results = csv.query(*simple_match_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_simple_match returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_simple_match.items = sink;
     out << "  Result: " << query_simple_match.items << " total matches across "
@@ -435,7 +441,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto simple_range_query = make_simple_range_query();
     BenchResult query_simple_range = run_bench("query_simple_range", config.query_iters, [&]() {
-        sink += csv.query(*simple_range_query).size();
+        auto results = csv.query(*simple_range_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_simple_range returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_simple_range.items = sink;
     out << "  Result: " << query_simple_range.items << " total matches across "
@@ -450,7 +461,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto simple_string_query = make_simple_string_match_query();
     BenchResult query_simple_string = run_bench("query_simple_string", config.query_iters, [&]() {
-        sink += csv.query(*simple_string_query).size();
+        auto results = csv.query(*simple_string_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_simple_string returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_simple_string.items = sink;
     out << "  Result: " << query_simple_string.items << " total matches across "
@@ -465,7 +481,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto and_two_query = make_and_query_two_conditions();
     BenchResult query_and_two = run_bench("query_and_two_cond", config.query_iters, [&]() {
-        sink += csv.query(*and_two_query).size();
+        auto results = csv.query(*and_two_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_and_two_cond returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_and_two.items = sink;
     out << "  Result: " << query_and_two.items << " total matches across "
@@ -480,7 +501,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto and_three_query = make_and_query_three_conditions();
     BenchResult query_and_three = run_bench("query_and_three_cond", config.query_iters, [&]() {
-        sink += csv.query(*and_three_query).size();
+        auto results = csv.query(*and_three_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_and_three_cond returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_and_three.items = sink;
     out << "  Result: " << query_and_three.items << " total matches across "
@@ -495,7 +521,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto and_four_query = make_and_query_four_conditions();
     BenchResult query_and_four = run_bench("query_and_four_cond", config.query_iters, [&]() {
-        sink += csv.query(*and_four_query).size();
+        auto results = csv.query(*and_four_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_and_four_cond returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_and_four.items = sink;
     out << "  Result: " << query_and_four.items << " total matches across "
@@ -510,7 +541,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto or_two_query = make_or_query_two_conditions();
     BenchResult query_or_two = run_bench("query_or_two_cond", config.query_iters, [&]() {
-        sink += csv.query(*or_two_query).size();
+        auto results = csv.query(*or_two_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_or_two_cond returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_or_two.items = sink;
     out << "  Result: " << query_or_two.items << " total matches across "
@@ -525,7 +561,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto or_four_query = make_or_query_four_conditions();
     BenchResult query_or_four = run_bench("query_or_four_cond", config.query_iters, [&]() {
-        sink += csv.query(*or_four_query).size();
+        auto results = csv.query(*or_four_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_or_four_cond returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_or_four.items = sink;
     out << "  Result: " << query_or_four.items << " total matches across "
@@ -540,7 +581,14 @@ int main(int argc, char** argv)
     sink = 0;
     auto not_query = make_not_query();
     BenchResult query_not = run_bench("query_not", config.query_iters, [&]() {
-        sink += csv.query(*not_query).size();
+        auto results = csv.query(*not_query).size();
+        std::size_t expected_not_results = csv_total_rows;
+        if (results == expected_not_results) {
+            std::cerr << "ERROR: query_not returned all rows (expected to exclude some)\n";
+            std::cerr << "  Expected: < " << expected_not_results << ", Got: " << results << "\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_not.items = sink;
     out << "  Result: " << query_not.items << " total matches across "
@@ -555,7 +603,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto complex_nested_query = make_complex_nested_query();
     BenchResult query_complex_nested = run_bench("query_complex_nested", config.query_iters, [&]() {
-        sink += csv.query(*complex_nested_query).size();
+        auto results = csv.query(*complex_nested_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_complex_nested returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_complex_nested.items = sink;
     out << "  Result: " << query_complex_nested.items << " total matches across "
@@ -570,7 +623,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto range_heavy_query = make_range_heavy_query();
     BenchResult query_range_heavy = run_bench("query_range_heavy", config.query_iters, [&]() {
-        sink += csv.query(*range_heavy_query).size();
+        auto results = csv.query(*range_heavy_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_range_heavy returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_range_heavy.items = sink;
     out << "  Result: " << query_range_heavy.items << " total matches across "
@@ -585,7 +643,12 @@ int main(int argc, char** argv)
     sink = 0;
     auto mixed_query = make_mixed_query();
     BenchResult query_mixed = run_bench("query_mixed", config.query_iters, [&]() {
-        sink += csv.query(*mixed_query).size();
+        auto results = csv.query(*mixed_query).size();
+        if (results == 0) {
+            std::cerr << "ERROR: query_mixed returned 0 results\n";
+            std::exit(1);
+        }
+        sink += results;
     });
     query_mixed.items = sink;
     out << "  Result: " << query_mixed.items << " total matches across "
