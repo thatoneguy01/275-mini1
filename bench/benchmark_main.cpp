@@ -108,28 +108,28 @@ void write_csv(const std::filesystem::path& path, const BenchConfig& config)
 
 std::unique_ptr<query::Query> make_simple_match_query()
 {
-    return std::make_unique<query::MatchQuery>("borough", 3.0);
+    return std::make_unique<query::MatchQuery>("borough", "BROOKLYN");
 }
 
 std::unique_ptr<query::Query> make_simple_range_query()
 {
     return std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 25000.0);
+        "job_number", 300000000.0, 400000000.0);
 }
 
 std::unique_ptr<query::Query> make_simple_string_match_query()
 {
     return std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED");
+        "job_status", "X");
 }
 
 std::unique_ptr<query::Query> make_and_query_two_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "job_status", "X"));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -138,11 +138,11 @@ std::unique_ptr<query::Query> make_and_query_three_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 50000.0));
+        "job_number", 300000000.0, 400000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "building_type", "1-2-3 FAMILY"));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -151,13 +151,13 @@ std::unique_ptr<query::Query> make_and_query_four_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 50000.0));
+        "job_number", 300000000.0, 400000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "job_status", "X"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "filing_date", 20200101.0, 20240101.0));
+        "community_board", 300.0, 320.0));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -166,9 +166,9 @@ std::unique_ptr<query::Query> make_or_query_two_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 2.0));
+        "borough", "QUEENS"));
 
     return std::make_unique<query::OrQuery>(std::move(subs));
 }
@@ -177,13 +177,13 @@ std::unique_ptr<query::Query> make_or_query_four_conditions()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "job_status", "X"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "PENDING"));
+        "job_status", "D"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "APPROVED"));
+        "job_status", "R"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "COMPLETED"));
+        "job_status", "J"));
 
     return std::make_unique<query::OrQuery>(std::move(subs));
 }
@@ -191,7 +191,7 @@ std::unique_ptr<query::Query> make_or_query_four_conditions()
 std::unique_ptr<query::Query> make_not_query()
 {
     auto sub = std::make_unique<query::MatchQuery>(
-        "residential", true);
+        "job_status", "Z");
     return std::make_unique<query::NotQuery>(std::move(sub));
 }
 
@@ -200,16 +200,16 @@ std::unique_ptr<query::Query> make_complex_nested_query()
     // ((A AND B) OR (C AND D))
     std::vector<std::unique_ptr<query::Query>> and_left;
     and_left.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     and_left.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "job_status", "X"));
     auto left = std::make_unique<query::AndQuery>(std::move(and_left));
 
     std::vector<std::unique_ptr<query::Query>> and_right;
     and_right.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 50000.0));
+        "job_number", 300000000.0, 400000000.0));
     and_right.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "PENDING"));
+        "borough", "QUEENS"));
     auto right = std::make_unique<query::AndQuery>(std::move(and_right));
 
     std::vector<std::unique_ptr<query::Query>> or_subs;
@@ -223,11 +223,11 @@ std::unique_ptr<query::Query> make_range_heavy_query()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 50000.0));
+        "job_number", 300000000.0, 400000000.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "filing_date", 20200101.0, 20240101.0));
+        "community_board", 300.0, 320.0));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "latitude", 40.5, 40.9));
+        "latitude", 40.6, 40.8));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
@@ -236,13 +236,13 @@ std::unique_ptr<query::Query> make_mixed_query()
 {
     std::vector<std::unique_ptr<query::Query>> subs;
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "borough", 1.0));
+        "borough", "BROOKLYN"));
     subs.emplace_back(std::make_unique<query::RangeQuery>(
-        "job_number", 1000.0, 50000.0));
+        "job_number", 300000000.0, 400000000.0));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "job_status", "ISSUED"));
+        "job_status", "X"));
     subs.emplace_back(std::make_unique<query::MatchQuery>(
-        "residential", true));
+        "building_type", "1-2-3 FAMILY"));
 
     return std::make_unique<query::AndQuery>(std::move(subs));
 }
