@@ -191,8 +191,7 @@ std::unique_ptr<query::Query> make_or_query_four_conditions()
 
 std::unique_ptr<query::Query> make_not_query()
 {
-    auto sub = std::make_unique<query::MatchQuery>(
-        "job_status", "Z");
+    auto sub = std::make_unique<query::MatchQuery>("borough", "BROOKLYN");
     return std::make_unique<query::NotQuery>(std::move(sub));
 }
 
