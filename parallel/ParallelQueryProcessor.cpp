@@ -56,7 +56,8 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
 
     LOG("ParallelQueryProcessor::execute: All tasks completed. Collecting results...");
     // Collect results from all workers
-    auto& all_worker_results = pool.get_all_results();
+    std::vector<std::vector<dob::DobJobApplication>> all_worker_results;
+    pool.get_all_results(all_worker_results);
 
     // Calculate total size
     std::size_t total_size = 0;
