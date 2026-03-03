@@ -12,6 +12,7 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <vector>
 
 #include "../dob/DobJobApplication.hpp"
 
@@ -34,9 +35,11 @@ uint64_t CsvIndexedFile::file_size(const std::string& path)
 
 // ---------- ctor / dtor ----------
 
-CsvIndexedFile::CsvIndexedFile(const std::string& csvPath)
+CsvIndexedFile::CsvIndexedFile(const std::string& csvPath, std::size_t chunk_size, std::size_t thread_pool_size)
     : csv_path_(csvPath),
       idx_path_(csvPath + ".idx"),
+      chunk_size_(chunk_size),
+      thread_pool_size_(thread_pool_size),
       file_(csvPath, std::ios::binary)
 {
     if (!file_)
@@ -117,6 +120,55 @@ std::string CsvIndexedFile::read_row(std::size_t row_index)
     }
 
     return row;
+}
+
+std::string CsvIndexedFile::read_rows(int n)
+{
+    if (n <= 0)
+        return "";
+
+    // Get current file position
+    uint64_t current_pos = file_.tellg();
+
+    // Find which row index corresponds to current position
+    std::size_t start_row = 0;
+    bool found = false;
+    for (std::size_t i = 0; i < header_->row_count; ++i) {
+        if (offsets_[i] == current_pos) {
+            start_row = i;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        throw std::runtime_error("Current file position does not align with any indexed row");
+    }
+
+    // Cap n to the actual number of rows available from current position
+    std::size_t rows_to_read = std::min(static_cast<std::size_t>(n),
+                                         header_->row_count - start_row);
+
+    if (rows_to_read == 0)
+        return "";
+
+    // Determine the end position
+    uint64_t end_pos;
+    if (start_row + rows_to_read >= header_->row_count) {
+        // Reading all remaining rows to end of file
+        end_pos = file_size(csv_path_);
+    } else {
+        // Reading n rows, so end at the start of the next row
+        end_pos = offsets_[start_row + rows_to_read];
+    }
+
+    // Calculate chunk size and read
+    std::size_t chunk_size = end_pos - current_pos;
+
+    std::string chunk(chunk_size, '\0');
+    file_.read(&chunk[0], chunk_size);
+
+    return chunk;
 }
 
 // ---------- index lifecycle ----------
@@ -272,22 +324,8 @@ void CsvIndexedFile::map_index()
     offsets_ = reinterpret_cast<uint64_t*>(
         reinterpret_cast<char*>(mmap_mem_) + sizeof(CsvIndexHeader));
 }
-
 std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {
-    std::vector<dob::DobJobApplication> results;
-
-    for (std::size_t i = 0; i < row_count(); ++i)
-    {
-        std::string row = read_row(i);
-        if (q.eval(row))
-        {
-            try {
-                results.push_back(dob::parse_row(row));
-            } catch (const std::exception& e) {
-                // Handle parse error (e.g., log it)
-            }
-        }
-    }
-
-    return results;
+    parallel::ParallelQueryProcessor processor(*this, thread_pool_size_, chunk_size_);
+    return processor.execute(q);
 }
+

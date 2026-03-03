@@ -8,6 +8,8 @@ target_include_directories(csv
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_link_libraries(csv PUBLIC parallel)
+
 target_compile_features(csv PUBLIC cxx_std_20)
 
 # Warnings should be local to the target (not global)

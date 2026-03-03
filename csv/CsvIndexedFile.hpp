@@ -6,6 +6,7 @@
 
 #include "../dob/DobJobApplication.hpp"
 #include "../query/Querys.hpp"
+#include "../parallel/ParallelQueryProcessor.hpp"
 
 struct CsvIndexHeader {
     uint64_t magic = 0x4353564944583031ULL; // CSVIDX01
@@ -16,19 +17,21 @@ struct CsvIndexHeader {
 
 class CsvIndexedFile {
 public:
-    explicit CsvIndexedFile(const std::string& csvPath);
+    explicit CsvIndexedFile(const std::string& csvPath, std::size_t chunk_size = 1000, std::size_t thread_pool_size = 4);
     ~CsvIndexedFile();
 
     std::size_t row_count() const;
 
     void seek_row(std::size_t row_index);
     std::string read_row(std::size_t row_index);
+    std::string read_rows(int n);
     std::vector<dob::DobJobApplication> query(query::Query &q);
 
 private:
     std::string csv_path_;
     std::string idx_path_;
-
+    std::size_t chunk_size_;
+    std::size_t thread_pool_size_;
     std::ifstream file_;
 
     // mmap index

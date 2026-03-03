@@ -7,8 +7,9 @@ project(my_project
 
 # Add subdirectories for library components
 add_subdirectory(dob)
-add_subdirectory(csv)
 add_subdirectory(query)
+add_subdirectory(parallel)
+add_subdirectory(csv)
 add_subdirectory(bench)
 
 # Main library target (INTERFACE library for aggregating component libraries)
@@ -17,8 +18,9 @@ add_library(mini1 INTERFACE)
 # Link subdirectory libraries
 target_link_libraries(mini1 INTERFACE
         dob
-        csv
         query
+        parallel
+        csv
 )
 
 # Include directories

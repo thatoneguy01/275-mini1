@@ -13,7 +13,7 @@ namespace query {
 
         // Parse field to double (for numeric columns)
         double parse_numeric(std::string_view field) {
-            // Strip quotes if present
+            // Strip quotes if present (like parse_string does)
             if (!field.empty() && field.front() == '"' && field.back() == '"') {
                 field = field.substr(1, field.size() - 2);
             }
@@ -28,6 +28,7 @@ namespace query {
 
             // Check if parsing was successful
             if (result.ec != std::errc{}) {
+                // If parsing failed, return 0.0 (could also throw an exception)
                 return 0.0;
             }
 
@@ -44,13 +45,7 @@ namespace query {
 
         // Parse bool field
         bool parse_bool(std::string_view field) {
-            // Strip quotes if present
-            if (!field.empty() && field.front() == '"' && field.back() == '"') {
-                field = field.substr(1, field.size() - 2);
-            }
-
-            return field == "1" || field == "true" || field == "True" || field == "TRUE" ||
-                   field == "X" || field == "x" || field == "Y" || field == "y";
+            return field == "1" || field == "true" || field == "True" || field == "TRUE";
         }
 
         // Safe string extraction from std::any - handles const char*
