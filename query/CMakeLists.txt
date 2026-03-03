@@ -1,6 +1,7 @@
 # query library definition
 add_library(query
         Querys.cpp
+        ../logging.hpp
 )
 
 target_include_directories(query

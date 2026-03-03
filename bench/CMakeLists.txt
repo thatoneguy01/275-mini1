@@ -1,6 +1,8 @@
 # benchmarks executable
 add_executable(benchmarks
         benchmark_main.cpp
+        ../logging.hpp
+        ../logging.hpp
 )
 
 target_link_libraries(benchmarks
@@ -29,6 +31,8 @@ endif()
 add_executable(benchmark_profile
         benchmark_profile.cpp
         benchmark_profile.cpp
+        ../logging.hpp
+        ../logging.hpp
 )
 
 target_link_libraries(benchmark_profile

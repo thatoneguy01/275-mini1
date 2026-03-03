@@ -5,6 +5,9 @@
 #include <vector>
 #include <memory>
 
+#define ENABLE_LOGGING 1
+#include "../logging.hpp"
+
 namespace parallel {
 
 ParallelQueryProcessor::ParallelQueryProcessor(CsvIndexedFile& csv_file, std::size_t thread_pool_size, std::size_t chunk_size)
@@ -24,6 +27,8 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
     csv_file_.seek_row(0);
 
     while (rows_processed < total_rows) {
+        LOG("ParallelQueryProcessor::execute: Enqueuing chunk %zu (rows %zu to %zu)",
+               chunk_id, rows_processed, std::min(rows_processed + chunk_size_, total_rows) - 1);
         std::size_t rows_in_chunk = std::min(chunk_size_, total_rows - rows_processed);
 
         // Read the chunk
@@ -45,9 +50,11 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
         chunk_id++;
     }
 
+    LOG("ParallelQueryProcessor::execute: Finished Enqueuing all chunks. Total chunks: %zu", chunk_id);
     // Wait for all tasks to complete
     pool.wait_all();
 
+    LOG("ParallelQueryProcessor::execute: All tasks completed. Collecting results...");
     // Collect results from all workers
     auto all_worker_results = pool.get_all_results();
 

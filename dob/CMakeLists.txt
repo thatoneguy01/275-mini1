@@ -1,6 +1,7 @@
 # dob library definition
 add_library(dob
         DobJobApplication.cpp
+        ../logging.hpp
 )
 
 target_include_directories(dob

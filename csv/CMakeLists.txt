@@ -1,6 +1,7 @@
 # csv library definition
 add_library(csv
         CsvIndexedFile.cpp
+        ../logging.hpp
 )
 
 target_include_directories(csv

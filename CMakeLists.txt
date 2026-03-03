@@ -13,7 +13,9 @@ add_subdirectory(csv)
 add_subdirectory(bench)
 
 # Main library target (INTERFACE library for aggregating component libraries)
-add_library(mini1 INTERFACE)
+add_library(mini1 INTERFACE
+        logging.hpp
+        logging.hpp)
 
 # Link subdirectory libraries
 target_link_libraries(mini1 INTERFACE
