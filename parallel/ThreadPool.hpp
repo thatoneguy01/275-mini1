@@ -22,6 +22,10 @@ public:
     template<typename F>
     void enqueue(F&& task) {
         {
+            std::lock_guard<std::mutex> active_lock(active_mutex_);
+            ++pending_tasks_;
+        }
+        {
             std::unique_lock<std::mutex> lock(queue_mutex_);
             tasks_.push(std::forward<F>(task));
         }
@@ -32,17 +36,19 @@ public:
 
     std::vector<std::vector<dob::DobJobApplication>> get_all_results();
 
-    std::vector<std::shared_ptr<ChunkWorker>> workers_;
+    std::shared_ptr<ChunkWorker> worker_at(std::size_t idx);
 
 private:
     void worker_thread();
 
     std::vector<std::thread> threads_;
+    std::vector<std::shared_ptr<ChunkWorker>> workers_;
     std::queue<std::function<void()>> tasks_;
     std::mutex queue_mutex_;
     std::condition_variable condition_;
     bool shutdown_ = false;
-    std::size_t active_tasks_ = 0;
+
+    std::size_t pending_tasks_ = 0;
     std::mutex active_mutex_;
     std::condition_variable active_condition_;
 };

@@ -37,8 +37,8 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
 
         // Enqueue task to process this chunk (worker accumulates in its own vector)
         pool.enqueue([worker_id, chunk_ptr, &pool]() {
-            auto& workers = pool.workers_;
-            workers[worker_id]->process(*chunk_ptr);
+            auto worker = pool.worker_at(worker_id);
+            worker->process(*chunk_ptr);
         });
 
         rows_processed += rows_in_chunk;

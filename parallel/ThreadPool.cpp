@@ -1,4 +1,3 @@
-
 #include "ThreadPool.hpp"
 #include "ChunkWorker.hpp"
 
@@ -46,24 +45,27 @@ void ThreadPool::worker_thread() {
             tasks_.pop();
         }
 
-        {
-            std::unique_lock<std::mutex> lock(active_mutex_);
-            active_tasks_++;
-        }
-
         task();
 
         {
-            std::unique_lock<std::mutex> lock(active_mutex_);
-            active_tasks_--;
-            active_condition_.notify_one();
+            std::lock_guard<std::mutex> lock(active_mutex_);
+            if (pending_tasks_ > 0) {
+                --pending_tasks_;
+            }
+            if (pending_tasks_ == 0) {
+                active_condition_.notify_all();
+            }
         }
     }
 }
 
 void ThreadPool::wait_all() {
     std::unique_lock<std::mutex> lock(active_mutex_);
-    active_condition_.wait(lock, [this]() { return active_tasks_ == 0; });
+    active_condition_.wait(lock, [this]() { return pending_tasks_ == 0; });
+}
+
+std::shared_ptr<ChunkWorker> ThreadPool::worker_at(std::size_t idx) {
+    return workers_.at(idx);
 }
 
 std::vector<std::vector<dob::DobJobApplication>> ThreadPool::get_all_results() {
