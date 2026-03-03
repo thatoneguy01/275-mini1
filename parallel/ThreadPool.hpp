@@ -34,7 +34,7 @@ public:
 
     void wait_all();
 
-    std::vector<std::vector<dob::DobJobApplication>> get_all_results();
+    std::vector<std::vector<dob::DobJobApplication>>& get_all_results();
 
     std::shared_ptr<ChunkWorker> worker_at(std::size_t idx);
 

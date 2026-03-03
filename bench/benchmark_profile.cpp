@@ -10,7 +10,7 @@ namespace {
 
 std::unique_ptr<query::Query> make_simple_match_query()
 {
-    return std::make_unique<query::MatchQuery>("borough", std::any(1.0));
+    return std::make_unique<query::MatchQuery>("borough", "BROOKLYN");
 }
 
 } // namespace
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     std::filesystem::remove(idx_path, ec);
 
     // Build index
-    CsvIndexedFile csv(resolved_csv_path.string());
+    CsvIndexedFile csv_var(resolved_csv_path.string(), 10000, 1);
 
     // Run query iterations
     auto query = make_simple_match_query();

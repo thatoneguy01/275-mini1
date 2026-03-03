@@ -324,7 +324,7 @@ void CsvIndexedFile::map_index()
     offsets_ = reinterpret_cast<uint64_t*>(
         reinterpret_cast<char*>(mmap_mem_) + sizeof(CsvIndexHeader));
 }
-std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {
+std::vector<dob::DobJobApplication>& CsvIndexedFile::query(query::Query &q) {
     parallel::ParallelQueryProcessor processor(*this, thread_pool_size_, chunk_size_);
     return processor.execute(q);
 }

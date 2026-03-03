@@ -72,7 +72,7 @@ std::shared_ptr<ChunkWorker> ThreadPool::worker_at(std::size_t idx) {
     return workers_.at(idx);
 }
 
-std::vector<std::vector<dob::DobJobApplication>> ThreadPool::get_all_results() {
+std::vector<std::vector<dob::DobJobApplication>>& ThreadPool::get_all_results() {
     std::vector<std::vector<dob::DobJobApplication>> all_results;
     for (auto& worker : workers_) {
         all_results.push_back(std::move(worker->get_results()));
