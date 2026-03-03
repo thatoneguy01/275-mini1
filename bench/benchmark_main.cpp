@@ -708,7 +708,7 @@ int main(int argc, char** argv)
         out << "Testing simple match queries with varying parameters\n\n";
         std::cout << "Running chunk/thread pool size variation benchmarks...\n";
 
-        std::vector<std::size_t> chunk_sizes = {100, 500, 1000, 2500, 5000};
+        std::vector<std::size_t> chunk_sizes = {10000, 25000, 50000, 100000};
         std::vector<std::size_t> thread_pool_sizes = {1, 2, 4, 8};
 
         for (std::size_t chunk_size : chunk_sizes) {

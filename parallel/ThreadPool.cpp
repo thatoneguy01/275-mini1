@@ -1,6 +1,9 @@
 #include "ThreadPool.hpp"
 #include "ChunkWorker.hpp"
 
+#define ENABLE_LOGGING 1
+#include "../logging.hpp"
+
 namespace parallel {
 
 ThreadPool::ThreadPool(std::size_t num_threads, query::Query& query, std::size_t chunk_size) {
@@ -44,7 +47,7 @@ void ThreadPool::worker_thread() {
             task = std::move(tasks_.front());
             tasks_.pop();
         }
-
+        LOG("ThreadPool::worker_thread: Starting task on thread %zu", std::hash<std::thread::id>{}(std::this_thread::get_id()));
         task();
 
         {
@@ -56,6 +59,8 @@ void ThreadPool::worker_thread() {
                 active_condition_.notify_all();
             }
         }
+        LOG("ThreadPool::worker_thread: Finished task on thread %zu.",
+            std::hash<std::thread::id>{}(std::this_thread::get_id()));
     }
 }
 

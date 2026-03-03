@@ -1,6 +1,9 @@
 #include "ChunkWorker.hpp"
 #include <sstream>
 
+#define ENABLE_LOGGING 1
+#include "../logging.hpp"
+
 namespace parallel {
 
 ChunkWorker::ChunkWorker(query::Query& query, std::size_t chunk_size)
