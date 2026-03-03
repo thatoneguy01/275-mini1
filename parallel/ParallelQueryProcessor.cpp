@@ -13,12 +13,8 @@ ParallelQueryProcessor::ParallelQueryProcessor(CsvIndexedFile& csv_file, std::si
 std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query& q) {
     std::size_t total_rows = csv_file_.row_count();
 
-    // Create a persistent thread pool
-    ThreadPool pool(thread_pool_size_);
-    std::vector<std::vector<dob::DobJobApplication>> thread_results;
-
-    // Create worker (with chunk_size for reserving space)
-    ChunkWorker worker(q, chunk_size_);
+    // Create a persistent thread pool with integrated workers
+    ThreadPool pool(thread_pool_size_, q, chunk_size_);
 
     // Process chunks with fixed-size thread pool
     std::size_t chunk_id = 0;
@@ -33,16 +29,16 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
         // Read the chunk
         std::string chunk = csv_file_.read_rows(static_cast<int>(rows_in_chunk));
 
-        // Allocate a unique result vector for this chunk
-        thread_results.emplace_back();
-        std::size_t current_chunk_id = chunk_id;
+        // Assign this chunk to a worker based on which thread will process it
+        std::size_t worker_id = chunk_id % thread_pool_size_;
 
         // Store chunk in shared_ptr to manage lifetime safely
         auto chunk_ptr = std::make_shared<std::string>(std::move(chunk));
 
-        // Enqueue task to process this chunk
-        pool.enqueue([&worker, current_chunk_id, chunk_ptr, &thread_results]() {
-            worker.process(current_chunk_id, *chunk_ptr, thread_results);
+        // Enqueue task to process this chunk (worker accumulates in its own vector)
+        pool.enqueue([worker_id, chunk_ptr, &pool]() {
+            auto& workers = pool.workers_;
+            workers[worker_id]->process(*chunk_ptr);
         });
 
         rows_processed += rows_in_chunk;
@@ -52,19 +48,23 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
     // Wait for all tasks to complete
     pool.wait_all();
 
-    // Calculate total size and reserve space
+    // Collect results from all workers
+    auto all_worker_results = pool.get_all_results();
+
+    // Calculate total size
     std::size_t total_size = 0;
-    for (auto& v : thread_results)
-        total_size += v.size();
+    for (auto& results : all_worker_results) {
+        total_size += results.size();
+    }
 
     std::vector<dob::DobJobApplication> final_results;
     final_results.reserve(total_size);
 
-    // Merge results using move semantics
-    for (auto& v : thread_results) {
+    // Merge results from all workers using move semantics
+    for (auto& results : all_worker_results) {
         final_results.insert(final_results.end(),
-                             std::make_move_iterator(v.begin()),
-                             std::make_move_iterator(v.end()));
+                             std::make_move_iterator(results.begin()),
+                             std::make_move_iterator(results.end()));
     }
 
     return final_results;

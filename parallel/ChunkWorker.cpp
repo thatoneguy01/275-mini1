@@ -6,10 +6,10 @@ namespace parallel {
 ChunkWorker::ChunkWorker(query::Query& query, std::size_t chunk_size)
     : query_(query), chunk_size_(chunk_size) {}
 
-void ChunkWorker::process(std::size_t tid, const std::string& chunk,
-                          std::vector<std::vector<dob::DobJobApplication>>& thread_results) {
-    auto& local = thread_results[tid];
-    local.reserve(chunk_size_);
+void ChunkWorker::process(const std::string& chunk) {
+    // Reserve space for expected number of results
+    std::size_t initial_size = results_.size();
+    results_.reserve(initial_size + chunk_size_);
 
     // Parse lines from the chunk string
     std::istringstream stream(chunk);
@@ -21,12 +21,20 @@ void ChunkWorker::process(std::size_t tid, const std::string& chunk,
 
         if (query_.eval(line)) {
             try {
-                local.push_back(dob::parse_row(line));
+                results_.push_back(dob::parse_row(line));
             } catch (const std::exception& e) {
                 // Handle parse error (e.g., log it)
             }
         }
     }
+}
+
+std::vector<dob::DobJobApplication>& ChunkWorker::get_results() {
+    return results_;
+}
+
+void ChunkWorker::clear_results() {
+    results_.clear();
 }
 
 } // namespace parallel

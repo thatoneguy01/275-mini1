@@ -7,11 +7,16 @@
 #include <vector>
 #include <memory>
 
+#include "../dob/DobJobApplication.hpp"
+#include "../query/Querys.hpp"
+
 namespace parallel {
+
+class ChunkWorker;
 
 class ThreadPool {
 public:
-    explicit ThreadPool(std::size_t num_threads);
+    ThreadPool(std::size_t num_threads, query::Query& query, std::size_t chunk_size);
     ~ThreadPool();
 
     template<typename F>
@@ -24,6 +29,10 @@ public:
     }
 
     void wait_all();
+
+    std::vector<std::vector<dob::DobJobApplication>> get_all_results();
+
+    std::vector<std::shared_ptr<ChunkWorker>> workers_;
 
 private:
     void worker_thread();
