@@ -49,7 +49,8 @@ void ThreadPool::worker_thread() {
         }
         LOG("ThreadPool::worker_thread: Starting task on thread %zu", std::hash<std::thread::id>{}(std::this_thread::get_id()));
         task();
-
+        LOG("ThreadPool::worker_thread: Finished task on thread %zu.",
+                    std::hash<std::thread::id>{}(std::this_thread::get_id()));
         {
             std::lock_guard<std::mutex> lock(active_mutex_);
             if (pending_tasks_ > 0) {
@@ -59,8 +60,6 @@ void ThreadPool::worker_thread() {
                 active_condition_.notify_all();
             }
         }
-        LOG("ThreadPool::worker_thread: Finished task on thread %zu.",
-            std::hash<std::thread::id>{}(std::this_thread::get_id()));
     }
 }
 
