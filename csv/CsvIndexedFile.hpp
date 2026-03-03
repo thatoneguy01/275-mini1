@@ -25,7 +25,7 @@ public:
     void seek_row(std::size_t row_index);
     std::string read_row(std::size_t row_index);
     std::string read_rows(int n);
-    std::vector<dob::DobJobApplication>& query(query::Query &q);
+    std::vector<dob::DobJobApplication> query(query::Query &q);
 
 private:
     std::string csv_path_;
