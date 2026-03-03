@@ -13,7 +13,7 @@ namespace parallel {
 ParallelQueryProcessor::ParallelQueryProcessor(CsvIndexedFile& csv_file, std::size_t thread_pool_size, std::size_t chunk_size)
     : csv_file_(csv_file), thread_pool_size_(thread_pool_size), chunk_size_(chunk_size) {}
 
-std::vector<dob::DobJobApplication>& ParallelQueryProcessor::execute(query::Query& q) {
+void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApplication>& out_results) {
     std::size_t total_rows = csv_file_.row_count();
 
     // Create a persistent thread pool with integrated workers
@@ -64,17 +64,14 @@ std::vector<dob::DobJobApplication>& ParallelQueryProcessor::execute(query::Quer
         total_size += results.size();
     }
 
-    std::vector<dob::DobJobApplication> final_results;
-    final_results.reserve(total_size);
+    out_results.reserve(total_size);
 
     // Merge results from all workers using move semantics
     for (auto& results : all_worker_results) {
-        final_results.insert(final_results.end(),
+        out_results.insert(out_results.end(),
                              std::make_move_iterator(results.begin()),
                              std::make_move_iterator(results.end()));
     }
-
-    return final_results;
 }
 
 } // namespace parallel
