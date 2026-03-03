@@ -14,13 +14,13 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
 
     // Create a persistent thread pool
     ThreadPool pool(thread_pool_size_);
-    std::vector<std::vector<dob::DobJobApplication>> thread_results(thread_pool_size_);
+    std::vector<std::vector<dob::DobJobApplication>> thread_results;
 
     // Create worker (with chunk_size for reserving space)
     ChunkWorker worker(q, chunk_size_);
 
     // Process chunks with fixed-size thread pool
-    std::size_t tid = 0;
+    std::size_t chunk_id = 0;
     std::size_t rows_processed = 0;
 
     // Seek to the beginning of the file
@@ -32,14 +32,17 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
         // Read the chunk
         std::string chunk = csv_file_.read_rows(static_cast<int>(rows_in_chunk));
 
+        // Allocate a unique result vector for this chunk
+        thread_results.emplace_back();
+        std::size_t current_chunk_id = chunk_id;
+
         // Enqueue task to process this chunk
-        std::size_t current_tid = tid % thread_pool_size_;
-        pool.enqueue([&worker, current_tid, chunk, &thread_results]() {
-            worker.process(current_tid, chunk, thread_results);
+        pool.enqueue([&worker, current_chunk_id, chunk, &thread_results]() {
+            worker.process(current_chunk_id, chunk, thread_results);
         });
 
         rows_processed += rows_in_chunk;
-        tid++;
+        chunk_id++;
     }
 
     // Wait for all tasks to complete
