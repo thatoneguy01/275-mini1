@@ -3,6 +3,7 @@
 #include "ThreadPool.hpp"
 #include "../csv/CsvIndexedFile.hpp"
 #include <vector>
+#include <memory>
 
 namespace parallel {
 
@@ -36,9 +37,12 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
         thread_results.emplace_back();
         std::size_t current_chunk_id = chunk_id;
 
+        // Store chunk in shared_ptr to manage lifetime safely
+        auto chunk_ptr = std::make_shared<std::string>(std::move(chunk));
+
         // Enqueue task to process this chunk
-        pool.enqueue([&worker, current_chunk_id, chunk, &thread_results]() {
-            worker.process(current_chunk_id, chunk, thread_results);
+        pool.enqueue([&worker, current_chunk_id, chunk_ptr, &thread_results]() {
+            worker.process(current_chunk_id, *chunk_ptr, thread_results);
         });
 
         rows_processed += rows_in_chunk;
