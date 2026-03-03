@@ -13,6 +13,11 @@
 #include <fstream>
 #include <stdexcept>
 #include <vector>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <algorithm>
 
 #include "../dob/DobJobApplication.hpp"
 
@@ -89,34 +94,35 @@ void CsvIndexedFile::seek_row(std::size_t row_index)
 
 std::string CsvIndexedFile::read_row(std::size_t row_index)
 {
-    seek_row(row_index);
+    if (row_index >= header_->row_count)
+        throw std::out_of_range("row out of range");
 
-    std::string row;
-    bool in_quotes = false;
-    char c;
+    uint64_t row_start = offsets_[row_index];
+    uint64_t row_end;
 
-    while (file_.get(c))
-    {
-        if (c == '"')
-        {
-            row += c;
+    if (row_index + 1 < header_->row_count) {
+        row_end = offsets_[row_index + 1];
+    } else {
+        // Last row: read to end of file
+        row_end = file_size(csv_path_);
+    }
 
-            if (in_quotes)
-            {
-                if (file_.peek() == '"')
-                    row += file_.get();
-                else
-                    in_quotes = false;
-            }
-            else
-                in_quotes = true;
-        }
-        else if (c == '\n' && !in_quotes)
-        {
-            break;
-        }
-        else
-            row += c;
+    // Calculate row size (excluding the newline)
+    uint64_t row_size = row_end - row_start;
+    if (row_size > 0 && row_size <= 1) {
+        // Skip the trailing newline if present
+        row_size--;
+    }
+
+    file_.clear();
+    file_.seekg(row_start);
+
+    std::string row(row_size, '\0');
+    file_.read(&row[0], row_size);
+
+    // Remove trailing newline if it exists
+    if (!row.empty() && row.back() == '\n') {
+        row.pop_back();
     }
 
     return row;
@@ -213,41 +219,123 @@ bool CsvIndexedFile::try_load_index()
 
 void CsvIndexedFile::build_index()
 {
-    std::vector<uint64_t> offsets;
+    uint64_t total_size = file_size(csv_path_);
+    const std::size_t chunk_read_size = 65536; // 64 KB chunks
 
     file_.clear();
     file_.seekg(0);
 
-    bool in_quotes = false;
-    char c;
-
+    // Shared state for workers
+    std::mutex offsets_mutex;
+    std::vector<uint64_t> offsets;
     offsets.push_back(0);
 
-    while (file_.get(c))
-    {
-        if (c == '"')
-        {
-            if (in_quotes)
+    // Thread pool components
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> task_queue;
+    std::mutex queue_mutex;
+    std::condition_variable cv;
+    bool shutdown = false;
+    std::size_t num_threads = thread_pool_size_;
+
+    // Worker thread function
+    auto worker_func = [&]() {
+        while (true) {
+            std::function<void()> task;
             {
-                if (file_.peek() == '"')
-                    file_.get();
-                else
-                    in_quotes = false;
+                std::unique_lock<std::mutex> lock(queue_mutex);
+                cv.wait(lock, [&]() { return !task_queue.empty() || shutdown; });
+                if (task_queue.empty() && shutdown) break;
+                if (task_queue.empty()) continue;
+                task = std::move(task_queue.front());
+                task_queue.pop();
             }
-            else
-                in_quotes = true;
+            task();
         }
-        else if (c == '\n' && !in_quotes)
-        {
-            offsets.push_back((uint64_t)file_.tellg());
-        }
+    };
+
+    // Start worker threads
+    for (std::size_t i = 0; i < num_threads; ++i) {
+        workers.emplace_back(worker_func);
     }
 
-    uint64_t size = file_size(csv_path_);
-    if (!offsets.empty() && offsets.back() == size)
+    // Main thread reads chunks and enqueues processing tasks
+    uint64_t global_offset = 0;
+    std::vector<char> buffer(chunk_read_size);
+
+    while (file_.read(buffer.data(), chunk_read_size) || file_.gcount() > 0)
+    {
+        std::size_t bytes_read = file_.gcount();
+
+        if (bytes_read == 0) break;
+
+        // Capture chunk data and offset for the task
+        std::string chunk_data(buffer.data(), bytes_read);
+        uint64_t chunk_offset = global_offset;
+        global_offset += bytes_read;
+
+        // Enqueue task to process this chunk
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            task_queue.push([chunk_data, chunk_offset, &offsets, &offsets_mutex]() {
+                std::vector<uint64_t> local_offsets;
+                bool in_quotes = false;
+
+                for (std::size_t i = 0; i < chunk_data.size(); ++i)
+                {
+                    char c = chunk_data[i];
+
+                    if (c == '"')
+                    {
+                        if (in_quotes)
+                        {
+                            if (i + 1 < chunk_data.size() && chunk_data[i + 1] == '"')
+                            {
+                                ++i;
+                            }
+                            else
+                                in_quotes = false;
+                        }
+                        else
+                            in_quotes = true;
+                    }
+                    else if (c == '\n' && !in_quotes)
+                    {
+                        local_offsets.push_back(chunk_offset + i + 1);
+                    }
+                }
+
+                // Store offsets from this chunk
+                {
+                    std::lock_guard<std::mutex> offsets_lock(offsets_mutex);
+                    offsets.insert(offsets.end(), local_offsets.begin(), local_offsets.end());
+                }
+            });
+        }
+        cv.notify_one();
+    }
+
+    // Signal shutdown and wait for all workers to finish
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        shutdown = true;
+    }
+    cv.notify_all();
+
+    for (auto& w : workers) {
+        w.join();
+    }
+
+    // Sort offsets to ensure correct order
+    std::sort(offsets.begin(), offsets.end());
+
+    // Remove duplicates
+    offsets.erase(std::unique(offsets.begin(), offsets.end()), offsets.end());
+
+    if (!offsets.empty() && offsets.back() == total_size)
         offsets.pop_back();
 
-    save_index(offsets, size);
+    save_index(offsets, total_size);
 }
 
 void CsvIndexedFile::save_index(const std::vector<uint64_t>& offsets,
