@@ -3,6 +3,8 @@ add_library(parallel STATIC
     ChunkWorker.hpp
     ParallelQueryProcessor.cpp
     ParallelQueryProcessor.hpp
+    ThreadPool.cpp
+    ThreadPool.hpp
 )
 
 target_include_directories(parallel PUBLIC

@@ -1,7 +1,7 @@
 #include "ParallelQueryProcessor.hpp"
 #include "ChunkWorker.hpp"
+#include "ThreadPool.hpp"
 #include "../csv/CsvIndexedFile.hpp"
-#include <thread>
 #include <vector>
 
 namespace parallel {
@@ -12,9 +12,9 @@ ParallelQueryProcessor::ParallelQueryProcessor(CsvIndexedFile& csv_file, std::si
 std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query& q) {
     std::size_t total_rows = csv_file_.row_count();
 
-    // Use fixed-size thread pool
-    std::vector<std::thread> thread_pool;
-    std::vector<std::vector<dob::DobJobApplication>> thread_results;
+    // Create a persistent thread pool
+    ThreadPool pool(thread_pool_size_);
+    std::vector<std::vector<dob::DobJobApplication>> thread_results(thread_pool_size_);
 
     // Create worker (with chunk_size for reserving space)
     ChunkWorker worker(q, chunk_size_);
@@ -27,35 +27,23 @@ std::vector<dob::DobJobApplication> ParallelQueryProcessor::execute(query::Query
     csv_file_.seek_row(0);
 
     while (rows_processed < total_rows) {
-        // If thread pool is full, wait for one to finish
-        if (thread_pool.size() >= thread_pool_size_) {
-            thread_pool[tid % thread_pool_size_].join();
-            thread_pool.erase(thread_pool.begin() + (tid % thread_pool_size_));
-        }
-
-        // Allocate result vector for this thread if needed
-        if (thread_results.size() <= tid) {
-            thread_results.resize(tid + 1);
-        }
-
         std::size_t rows_in_chunk = std::min(chunk_size_, total_rows - rows_processed);
 
         // Read the chunk
         std::string chunk = csv_file_.read_rows(static_cast<int>(rows_in_chunk));
 
-        // Create a thread to process this chunk
-        thread_pool.emplace_back([&worker, tid, chunk, &thread_results]() {
-            worker.process(tid, chunk, thread_results);
+        // Enqueue task to process this chunk
+        std::size_t current_tid = tid % thread_pool_size_;
+        pool.enqueue([&worker, current_tid, chunk, &thread_results]() {
+            worker.process(current_tid, chunk, thread_results);
         });
 
         rows_processed += rows_in_chunk;
         tid++;
     }
 
-    // Wait for all remaining threads to complete
-    for (auto& thread : thread_pool) {
-        thread.join();
-    }
+    // Wait for all tasks to complete
+    pool.wait_all();
 
     // Calculate total size and reserve space
     std::size_t total_size = 0;
