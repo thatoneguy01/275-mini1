@@ -1,6 +1,3 @@
-#include "ThreadPool.hpp"
-
-namespace parallel {
 
 #include "ThreadPool.hpp"
 #include "ChunkWorker.hpp"
