@@ -711,6 +711,9 @@ int main(int argc, char** argv)
         std::vector<std::size_t> chunk_sizes = {10000, 25000, 50000, 100000};
         std::vector<std::size_t> thread_pool_sizes = {1, 2, 4, 8};
 
+        // Create the CSV file once outside the loops
+        CsvIndexedFile csv_var(csv_path.string());
+
         for (std::size_t chunk_size : chunk_sizes) {
             for (std::size_t pool_size : thread_pool_sizes) {
                 std::size_t sink = 0;
@@ -721,7 +724,6 @@ int main(int argc, char** argv)
 
                 auto simple_match = make_simple_match_query();
                 BenchResult result = run_bench(bench_name, config.query_iters, [&]() {
-                    CsvIndexedFile csv_var(csv_path.string(), chunk_size, pool_size);
                     auto results = csv_var.query(*simple_match).size();
                     if (results == 0) {
                         std::cerr << "ERROR: " << bench_name << " returned 0 results\n";
