@@ -12,10 +12,6 @@ ChunkWorker::ChunkWorker(query::Query& query, std::size_t chunk_size)
 }
 
 void ChunkWorker::process(const std::string& chunk) {
-    // Reserve space for expected number of results
-    std::size_t initial_size = results_.size();
-    results_.resize(initial_size + chunk_size_);
-
     // Parse lines from the chunk string
     std::istringstream stream(chunk);
     std::string line;
