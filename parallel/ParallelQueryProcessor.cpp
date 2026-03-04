@@ -4,6 +4,7 @@
 #include "../csv/CsvIndexedFile.hpp"
 #include <vector>
 #include <memory>
+#include <sstream>
 
 #define ENABLE_LOGGING 1
 #include "../logging.hpp"
@@ -17,7 +18,7 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
     std::size_t total_rows = csv_file_.row_count();
 
     // Create a persistent thread pool with integrated workers
-    ThreadPool pool(thread_pool_size_, q, chunk_size_);
+    ThreadPool pool(thread_pool_size_, chunk_size_);
 
     // Process chunks with fixed-size thread pool
     std::size_t chunk_id = 0;
@@ -34,16 +35,35 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
         // Read the chunk
         std::string chunk = csv_file_.read_rows(static_cast<int>(rows_in_chunk));
 
-        // Assign this chunk to a worker based on which thread will process it
-        std::size_t worker_id = chunk_id % thread_pool_size_;
-
         // Store chunk in shared_ptr to manage lifetime safely
         auto chunk_ptr = std::make_shared<std::string>(std::move(chunk));
 
-        // Enqueue task to process this chunk (worker accumulates in its own vector)
-        pool.enqueue([worker_id, chunk_ptr, &pool]() {
-            auto worker = pool.worker_at(worker_id);
-            worker->process(*chunk_ptr);
+        // Enqueue task to process this chunk
+        // The task receives the chunk pointer and the ChunkWorker pointer
+        pool.enqueue(chunk_ptr, [&q](const std::shared_ptr<std::string>& chunk, const std::shared_ptr<ChunkWorker>& worker) {
+            // Process chunk - parse lines and filter by query
+            std::istringstream stream(*chunk);
+            std::string line;
+            int total_lines = 0;
+            int lines_matched = 0;
+
+            while (std::getline(stream, line)) {
+                ++total_lines;
+                if (line.empty())
+                    continue;
+
+                if (q.eval(line)) {
+                    try {
+                        worker->add_result(dob::parse_row(line));
+                        ++lines_matched;
+                    } catch (const std::exception& e) {
+                        // Handle parse error (e.g., log it)
+                    }
+                }
+            }
+
+            LOG("ChunkProcessor: Processed chunk with %d lines, matched %d lines.",
+                total_lines, lines_matched);
         });
 
         rows_processed += rows_in_chunk;

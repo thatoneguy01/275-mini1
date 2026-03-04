@@ -8,31 +8,72 @@ namespace parallel {
 
 ChunkWorker::ChunkWorker(query::Query& query, std::size_t chunk_size)
     : query_(query), chunk_size_(chunk_size) {
-
+    // Create and start the worker thread
+    thread_ = std::make_unique<std::thread>([this]() { worker_thread_main(); });
 }
 
-void ChunkWorker::process(const std::string& chunk) {
-    // Parse lines from the chunk string
-    std::istringstream stream(chunk);
-    std::string line;
-    int total_lines = 0;
-    int lines_matched = 0;
-    while (std::getline(stream, line)) {
-        ++total_lines;
-        if (line.empty())
-            continue;
+ChunkWorker::~ChunkWorker() {
+    shutdown();
+}
 
-        if (query_.eval(line)) {
-            try {
-                results_.push_back(dob::parse_row(line));
-                ++lines_matched;
-            } catch (const std::exception& e) {
-                // Handle parse error (e.g., log it)
+void ChunkWorker::worker_thread_main() {
+    while (true) {
+        std::function<void()> task;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            condition_.wait(lock, [this]() { return !task_queue_.empty() || shutdown_; });
+
+            if (shutdown_ && task_queue_.empty()) {
+                break;
+            }
+
+            if (task_queue_.empty()) {
+                continue;
+            }
+
+            task = std::move(task_queue_.front());
+            task_queue_.pop();
+        }
+
+        LOG("ChunkWorker::worker_thread_main: Starting task on thread %zu", 
+            std::hash<std::thread::id>{}(std::this_thread::get_id()));
+        task();
+        LOG("ChunkWorker::worker_thread_main: Finished task on thread %zu.", 
+            std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            if (pending_tasks_ > 0) {
+                --pending_tasks_;
             }
         }
     }
-    LOG("ChunkWorker::process: Processed chunk with %d lines, matched %d lines.",
-        total_lines, lines_matched);
+}
+
+void ChunkWorker::enqueue_task(std::function<void()> task) {
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        ++pending_tasks_;
+        task_queue_.push(std::move(task));
+    }
+    condition_.notify_one();
+}
+
+void ChunkWorker::shutdown() {
+    {
+        std::lock_guard<std::mutex> lock(queue_mutex_);
+        shutdown_ = true;
+    }
+    condition_.notify_one();
+
+    if (thread_ && thread_->joinable()) {
+        thread_->join();
+    }
+}
+
+void ChunkWorker::wait_for_completion() {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    condition_.wait(lock, [this]() { return pending_tasks_ == 0 && task_queue_.empty(); });
 }
 
 std::vector<dob::DobJobApplication>& ChunkWorker::get_results() {
@@ -41,6 +82,10 @@ std::vector<dob::DobJobApplication>& ChunkWorker::get_results() {
 
 void ChunkWorker::clear_results() {
     results_.clear();
+}
+
+void ChunkWorker::add_result(dob::DobJobApplication&& result) {
+    results_.push_back(std::move(result));
 }
 
 } // namespace parallel

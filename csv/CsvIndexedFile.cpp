@@ -13,13 +13,14 @@
 #include <fstream>
 #include <stdexcept>
 #include <vector>
-#include <queue>
-#include <thread>
 #include <mutex>
-#include <condition_variable>
 #include <algorithm>
+#include <sstream>
 
 #include "../dob/DobJobApplication.hpp"
+#include "../query/Querys.hpp"
+#include "../parallel/ThreadPool.hpp"
+#include "../parallel/ChunkWorker.hpp"
 
 // ---------- helpers ----------
 
@@ -225,39 +226,13 @@ void CsvIndexedFile::build_index()
     file_.clear();
     file_.seekg(0);
 
-    // Shared state for workers
+    // Shared state for collecting offsets
     std::mutex offsets_mutex;
     std::vector<uint64_t> offsets;
     offsets.push_back(0);
 
-    // Thread pool components
-    std::vector<std::thread> workers;
-    std::queue<std::function<void()>> task_queue;
-    std::mutex queue_mutex;
-    std::condition_variable cv;
-    bool shutdown = false;
-    std::size_t num_threads = thread_pool_size_;
-
-    // Worker thread function
-    auto worker_func = [&]() {
-        while (true) {
-            std::function<void()> task;
-            {
-                std::unique_lock<std::mutex> lock(queue_mutex);
-                cv.wait(lock, [&]() { return !task_queue.empty() || shutdown; });
-                if (task_queue.empty() && shutdown) break;
-                if (task_queue.empty()) continue;
-                task = std::move(task_queue.front());
-                task_queue.pop();
-            }
-            task();
-        }
-    };
-
-    // Start worker threads
-    for (std::size_t i = 0; i < num_threads; ++i) {
-        workers.emplace_back(worker_func);
-    }
+    // Create ThreadPool
+    parallel::ThreadPool pool(thread_pool_size_, chunk_size_);
 
     // Main thread reads chunks and enqueues processing tasks
     uint64_t global_offset = 0;
@@ -269,62 +244,53 @@ void CsvIndexedFile::build_index()
 
         if (bytes_read == 0) break;
 
-        // Capture chunk data and offset for the task
-        std::string chunk_data(buffer.data(), bytes_read);
+        // Store chunk data and offset
+        auto chunk_data = std::make_shared<std::string>(buffer.data(), bytes_read);
         uint64_t chunk_offset = global_offset;
         global_offset += bytes_read;
 
         // Enqueue task to process this chunk
-        {
-            std::lock_guard<std::mutex> lock(queue_mutex);
-            task_queue.push([chunk_data, chunk_offset, &offsets, &offsets_mutex]() {
-                std::vector<uint64_t> local_offsets;
-                bool in_quotes = false;
+        pool.enqueue(chunk_data, [chunk_offset, &offsets, &offsets_mutex](
+            const std::shared_ptr<std::string>& chunk,
+            const std::shared_ptr<parallel::ChunkWorker>&) {
 
-                for (std::size_t i = 0; i < chunk_data.size(); ++i)
+            std::vector<uint64_t> local_offsets;
+            bool in_quotes = false;
+
+            for (std::size_t i = 0; i < chunk->size(); ++i)
+            {
+                char c = (*chunk)[i];
+
+                if (c == '"')
                 {
-                    char c = chunk_data[i];
-
-                    if (c == '"')
+                    if (in_quotes)
                     {
-                        if (in_quotes)
+                        if (i + 1 < chunk->size() && (*chunk)[i + 1] == '"')
                         {
-                            if (i + 1 < chunk_data.size() && chunk_data[i + 1] == '"')
-                            {
-                                ++i;
-                            }
-                            else
-                                in_quotes = false;
+                            ++i;
                         }
                         else
-                            in_quotes = true;
+                            in_quotes = false;
                     }
-                    else if (c == '\n' && !in_quotes)
-                    {
-                        local_offsets.push_back(chunk_offset + i + 1);
-                    }
+                    else
+                        in_quotes = true;
                 }
-
-                // Store offsets from this chunk
+                else if (c == '\n' && !in_quotes)
                 {
-                    std::lock_guard<std::mutex> offsets_lock(offsets_mutex);
-                    offsets.insert(offsets.end(), local_offsets.begin(), local_offsets.end());
+                    local_offsets.push_back(chunk_offset + i + 1);
                 }
-            });
-        }
-        cv.notify_one();
+            }
+
+            // Store offsets from this chunk
+            {
+                std::lock_guard<std::mutex> offsets_lock(offsets_mutex);
+                offsets.insert(offsets.end(), local_offsets.begin(), local_offsets.end());
+            }
+        });
     }
 
-    // Signal shutdown and wait for all workers to finish
-    {
-        std::lock_guard<std::mutex> lock(queue_mutex);
-        shutdown = true;
-    }
-    cv.notify_all();
-
-    for (auto& w : workers) {
-        w.join();
-    }
+    // Wait for all tasks to complete
+    pool.wait_all();
 
     // Sort offsets to ensure correct order
     std::sort(offsets.begin(), offsets.end());
