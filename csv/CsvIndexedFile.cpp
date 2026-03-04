@@ -22,6 +22,9 @@
 #include "../parallel/ThreadPool.hpp"
 #include "../parallel/ChunkWorker.hpp"
 
+#define ENABLE_LOGGING
+#include "../logging.hpp"
+
 // ---------- helpers ----------
 
 uint64_t CsvIndexedFile::file_size(const std::string& path)
@@ -289,9 +292,10 @@ void CsvIndexedFile::build_index()
         });
     }
 
+    LOG("CsvIndexedFile::build_index: Waiting for all tasks to complete...");
     // Wait for all tasks to complete
     pool.wait_all();
-
+    LOG("CsvIndexedFile::build_index: All tasks completed.");
     // Sort offsets to ensure correct order
     std::sort(offsets.begin(), offsets.end());
 
