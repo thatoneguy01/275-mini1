@@ -20,9 +20,15 @@ ThreadPool::~ThreadPool() {
 
 void ThreadPool::wait_all() {
     // Wait for all workers to complete their tasks
-    for (auto& worker : workers_) {
-        worker->wait_for_completion();
+    LOG("ThreadPool::wait_all: Starting, waiting for %zu workers", workers_.size());
+
+    for (std::size_t i = 0; i < workers_.size(); ++i) {
+        LOG("ThreadPool::wait_all: Waiting for worker %zu to complete", i);
+        workers_[i]->wait_for_completion();
+        LOG("ThreadPool::wait_all: Worker %zu completed", i);
     }
+
+    LOG("ThreadPool::wait_all: All workers completed");
 }
 
 
