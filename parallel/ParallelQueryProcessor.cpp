@@ -6,7 +6,7 @@
 #include <memory>
 #include <sstream>
 
-#define ENABLE_LOGGING 1
+#undef ENABLE_LOGGING
 #include "../logging.hpp"
 
 namespace parallel {

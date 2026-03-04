@@ -22,7 +22,7 @@
 #include "../parallel/ThreadPool.hpp"
 #include "../parallel/ChunkWorker.hpp"
 
-#define ENABLE_LOGGING
+#undef ENABLE_LOGGING
 #include "../logging.hpp"
 
 // ---------- helpers ----------

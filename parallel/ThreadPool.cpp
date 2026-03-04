@@ -1,7 +1,7 @@
 #include "ThreadPool.hpp"
 #include "ChunkWorker.hpp"
 
-#define ENABLE_LOGGING 1
+#undef ENABLE_LOGGING
 #include "../logging.hpp"
 
 namespace parallel {
