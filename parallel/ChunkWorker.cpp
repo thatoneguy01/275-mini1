@@ -6,8 +6,8 @@
 
 namespace parallel {
 
-ChunkWorker::ChunkWorker(query::Query& query, std::size_t chunk_size)
-    : query_(query), chunk_size_(chunk_size) {
+ChunkWorker::ChunkWorker(std::size_t chunk_size)
+    : chunk_size_(chunk_size) {
     // Create and start the worker thread
     thread_ = std::make_unique<std::thread>([this]() { worker_thread_main(); });
 }

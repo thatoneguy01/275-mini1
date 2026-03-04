@@ -16,7 +16,7 @@ namespace parallel {
 
 class ChunkWorker {
 public:
-    ChunkWorker(query::Query& query, std::size_t chunk_size);
+    ChunkWorker(std::size_t chunk_size);
     ~ChunkWorker();
 
     void enqueue_task(std::function<void()> task);
@@ -32,7 +32,6 @@ public:
 private:
     void worker_thread_main();
 
-    query::Query& query_;
     std::size_t chunk_size_;
     std::vector<dob::DobJobApplication> results_;
 

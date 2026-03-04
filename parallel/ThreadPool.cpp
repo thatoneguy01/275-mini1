@@ -9,10 +9,7 @@ namespace parallel {
 ThreadPool::ThreadPool(std::size_t num_threads, std::size_t chunk_size) {
     // Create num_threads ChunkWorkers, each with its own thread
     for (std::size_t i = 0; i < num_threads; ++i) {
-        // Note: ChunkWorker still needs a query reference, which must be provided by the task
-        // We'll pass a placeholder for now since the actual query comes from the caller
-        static thread_local query::MatchQuery dummy_query("", 0);
-        workers_.push_back(std::make_shared<ChunkWorker>(dummy_query, chunk_size));
+        workers_.push_back(std::make_shared<ChunkWorker>(chunk_size));
     }
 }
 
