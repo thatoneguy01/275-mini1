@@ -6,6 +6,8 @@
 #include "../csv/CsvIndexedFile.hpp"
 #include "../query/Querys.hpp"
 
+//TODO: const thing& all over the place
+
 namespace {
 
 std::unique_ptr<query::Query> make_simple_match_query()

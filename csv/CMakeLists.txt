@@ -18,6 +18,7 @@ if (MSVC)
     target_compile_options(csv PRIVATE /W4 /permissive-)
 else()
     target_compile_options(csv PRIVATE
+            -O3
             -Wall
             -Wextra
             -Wpedantic

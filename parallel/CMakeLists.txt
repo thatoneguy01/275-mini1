@@ -18,3 +18,17 @@ target_link_libraries(parallel PUBLIC
 
 target_compile_features(parallel PRIVATE cxx_std_20)
 
+# Warnings should be local to the target (not global)
+if (MSVC)
+    target_compile_options(parallel PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(parallel PRIVATE
+            -O3
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wshadow
+    )
+endif()
+

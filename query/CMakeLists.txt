@@ -16,6 +16,7 @@ if (MSVC)
     target_compile_options(query PRIVATE /W4 /permissive-)
 else()
     target_compile_options(query PRIVATE
+            -O3
             -Wall
             -Wextra
             -Wpedantic

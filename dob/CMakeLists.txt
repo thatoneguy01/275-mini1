@@ -16,6 +16,7 @@ if (MSVC)
     target_compile_options(dob PRIVATE /W4 /permissive-)
 else()
     target_compile_options(dob PRIVATE
+            -O3
             -Wall
             -Wextra
             -Wpedantic
