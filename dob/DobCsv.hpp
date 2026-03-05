@@ -5,8 +5,9 @@
 
 namespace dob {
 
+    //TODO: SPEED UP
     inline void split_csv_line(
-        std::string_view line,
+        const std::string_view& line,
         std::vector<std::string_view>& out)
     {
         out.clear();

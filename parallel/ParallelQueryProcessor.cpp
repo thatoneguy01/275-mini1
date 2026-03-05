@@ -47,6 +47,7 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
             int total_lines = 0;
             int lines_matched = 0;
 
+            //TODO: get lines unsing indexes
             while (std::getline(stream, line)) {
                 ++total_lines;
                 if (line.empty())

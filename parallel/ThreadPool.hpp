@@ -18,7 +18,7 @@ public:
     // Enqueue a task for a chunk to be processed by a worker
     // The task function receives the chunk pointer and worker pointer
     template<typename F>
-    void enqueue(std::shared_ptr<std::string> chunk, F&& task) {
+    void enqueue(const std::shared_ptr<std::string>& chunk, F&& task) {
         // Round-robin task distribution to workers
         std::size_t worker_idx = next_worker_idx_.fetch_add(1) % workers_.size();
         auto& worker = workers_[worker_idx];
