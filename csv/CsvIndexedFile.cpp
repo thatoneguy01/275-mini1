@@ -16,6 +16,7 @@
 #include <mutex>
 #include <algorithm>
 #include <sstream>
+#include <cstring>
 
 #include "../dob/DobJobApplication.hpp"
 #include "../query/Querys.hpp"
