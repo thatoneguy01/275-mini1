@@ -24,6 +24,7 @@ if (MSVC)
 else()
     target_compile_options(parallel PRIVATE
             -O3
+            -g3
             -Wall
             -Wextra
             -Wpedantic

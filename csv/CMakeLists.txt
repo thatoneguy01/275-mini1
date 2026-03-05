@@ -19,6 +19,7 @@ if (MSVC)
 else()
     target_compile_options(csv PRIVATE
             -O3
+            -g3
             -Wall
             -Wextra
             -Wpedantic
