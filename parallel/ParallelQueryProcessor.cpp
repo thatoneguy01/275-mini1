@@ -4,7 +4,6 @@
 #include "../csv/CsvIndexedFile.hpp"
 #include <vector>
 #include <memory>
-#include <sstream>
 
 #undef ENABLE_LOGGING
 #include "../logging.hpp"
@@ -20,6 +19,10 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
     // Create a persistent thread pool with integrated workers
     ThreadPool pool(thread_pool_size_, chunk_size_);
 
+    // Get index access for efficient row reading
+    const uint64_t* offsets = csv_file_.get_offsets();
+    std::string csv_path = csv_file_.get_csv_path();
+
     // Process chunks with fixed-size thread pool
     std::size_t chunk_id = 0;
     std::size_t rows_processed = 0;
@@ -31,6 +34,8 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
         LOG("ParallelQueryProcessor::execute: Enqueuing chunk %zu (rows %zu to %zu)",
                chunk_id, rows_processed, std::min(rows_processed + chunk_size_, total_rows) - 1);
         std::size_t rows_in_chunk = std::min(chunk_size_, total_rows - rows_processed);
+        std::size_t start_row = rows_processed;
+        std::size_t end_row = rows_processed + rows_in_chunk;
 
         // Read the chunk
         std::string chunk = csv_file_.read_rows(static_cast<int>(rows_in_chunk));
@@ -38,33 +43,54 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
         // Store chunk in shared_ptr to manage lifetime safely
         auto chunk_ptr = std::make_shared<std::string>(std::move(chunk));
 
-        // Enqueue task to process this chunk
-        // The task receives the chunk pointer and the ChunkWorker pointer
-        pool.enqueue(chunk_ptr, [&q](const std::shared_ptr<std::string>& thread_chunk, const std::shared_ptr<ChunkWorker>& worker) {
-            // Process chunk - parse lines and filter by query
-            std::istringstream stream(*thread_chunk);
-            std::string line;
-            int total_lines = 0;
-            int lines_matched = 0;
+        // Calculate the chunk's starting byte offset
+        uint64_t chunk_start_offset = offsets[start_row];
 
-            //TODO: get lines unsing indexes
-            while (std::getline(stream, line)) {
-                ++total_lines;
+        // Enqueue task to process this chunk
+        pool.enqueue(chunk_ptr, [&q, offsets, start_row, end_row, total_rows, chunk_start_offset](
+                const std::shared_ptr<std::string>& thread_chunk,
+                const std::shared_ptr<ChunkWorker>& worker) {
+
+            // Process each row in the chunk using offsets
+            for (std::size_t row_idx = start_row; row_idx < end_row; ++row_idx) {
+                // Calculate the position of this row within the chunk
+                uint64_t row_start = offsets[row_idx];
+                uint64_t row_end;
+
+                if (row_idx + 1 < total_rows) {
+                    row_end = offsets[row_idx + 1];
+                } else {
+                    // Last row - use chunk end
+                    row_end = chunk_start_offset + thread_chunk->size();
+                }
+
+                // Extract the line from the chunk data
+                uint64_t row_offset_in_chunk = row_start - chunk_start_offset;
+                uint64_t row_length = row_end - row_start;
+
+                // Remove trailing newline if present
+                if (row_length > 0 && (*thread_chunk)[row_offset_in_chunk + row_length - 1] == '\n') {
+                    row_length--;
+                }
+                if (row_length > 0 && (*thread_chunk)[row_offset_in_chunk + row_length - 1] == '\r') {
+                    row_length--;
+                }
+
+                std::string line(thread_chunk->data() + row_offset_in_chunk, row_length);
+
                 if (line.empty())
                     continue;
 
                 if (q.eval(line)) {
                     try {
                         worker->add_result(dob::parse_row(line));
-                        ++lines_matched;
                     } catch (const std::exception& e) {
                         // Handle parse error (e.g., log it)
                     }
                 }
             }
 
-            LOG("ChunkProcessor: Processed chunk with %d lines, matched %d lines.",
-                total_lines, lines_matched);
+            LOG("ChunkProcessor: Processed chunk with %zu rows.", end_row - start_row);
         });
 
         rows_processed += rows_in_chunk;

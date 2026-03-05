@@ -255,38 +255,63 @@ void CsvIndexedFile::build_index()
         // Enqueue task to process this chunk
         pool.enqueue(chunk_data, [chunk_offset, &offsets, &offsets_mutex](
             const std::shared_ptr<std::string>& chunk,
-            const std::shared_ptr<parallel::ChunkWorker>&) {
+            const std::shared_ptr<parallel::ChunkWorker>&)
+        {
+            const char* data = chunk->data();
+            const char* ptr  = data;
+            const char* end  = data + chunk->size();
 
             std::vector<uint64_t> local_offsets;
+            local_offsets.reserve(chunk->size() / 32); // heuristic
+
             bool in_quotes = false;
 
-            for (std::size_t i = 0; i < chunk->size(); ++i)
+            while (ptr < end)
             {
-                char c = (*chunk)[i];
+                const char* next_quote = (const char*)memchr(ptr, '"', end - ptr);
+                const char* next_nl    = (const char*)memchr(ptr, '\n', end - ptr);
 
-                if (c == '"')
+                const char* next = nullptr;
+
+                if (!next_quote) next = next_nl;
+                else if (!next_nl) next = next_quote;
+                else next = (next_quote < next_nl) ? next_quote : next_nl;
+
+                if (!next)
+                    break;
+
+                if (*next == '"')
                 {
                     if (in_quotes)
                     {
-                        if (i + 1 < chunk->size() && (*chunk)[i + 1] == '"')
+                        if (next + 1 < end && next[1] == '"')
                         {
-                            ++i;
+                            ptr = next + 2; // skip escaped quote
+                            continue;
                         }
                         else
+                        {
                             in_quotes = false;
+                        }
                     }
                     else
+                    {
                         in_quotes = true;
+                    }
+
+                    ptr = next + 1;
                 }
-                else if (c == '\n' && !in_quotes)
+                else
                 {
-                    local_offsets.push_back(chunk_offset + i + 1);
+                    if (!in_quotes)
+                        local_offsets.push_back(chunk_offset + (next - data) + 1);
+
+                    ptr = next + 1;
                 }
             }
 
-            // Store offsets from this chunk
             {
-                std::lock_guard<std::mutex> offsets_lock(offsets_mutex);
+                std::lock_guard<std::mutex> lock(offsets_mutex);
                 offsets.insert(offsets.end(), local_offsets.begin(), local_offsets.end());
             }
         });
@@ -381,6 +406,29 @@ void CsvIndexedFile::map_index()
     header_ = reinterpret_cast<CsvIndexHeader*>(mmap_mem_);
     offsets_ = reinterpret_cast<uint64_t*>(
         reinterpret_cast<char*>(mmap_mem_) + sizeof(CsvIndexHeader));
+
+    // Cache offsets in memory
+    if (header_->row_count > 0 && offsets_) {
+        cached_offsets_.assign(offsets_, offsets_ + header_->row_count);
+    }
+
+    LOG("CsvIndexedFile::map_index: Cached %llu row offsets in memory", header_->row_count);
+}
+
+const uint64_t* CsvIndexedFile::get_offsets() const
+{
+    if (cached_offsets_.empty()) {
+        throw std::runtime_error("Index not available");
+    }
+    return cached_offsets_.data();
+}
+
+uint64_t CsvIndexedFile::get_row_offset(std::size_t row_index) const
+{
+    if (row_index >= cached_offsets_.size()) {
+        throw std::out_of_range("row out of range");
+    }
+    return cached_offsets_[row_index];
 }
 
 std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {

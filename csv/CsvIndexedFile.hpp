@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 #include "../dob/DobJobApplication.hpp"
 #include "../query/Querys.hpp"
@@ -27,6 +28,11 @@ public:
     std::string read_rows(int n);
     std::vector<dob::DobJobApplication> query(query::Query &q);
 
+    // Index access methods
+    const uint64_t* get_offsets() const;
+    uint64_t get_row_offset(std::size_t row_index) const;
+    std::string get_csv_path() const { return csv_path_; }
+
 private:
     std::string csv_path_;
     std::string idx_path_;
@@ -34,7 +40,10 @@ private:
     std::size_t thread_pool_size_;
     std::ifstream file_;
 
-    // mmap index
+    // In-memory cached index offsets
+    std::vector<uint64_t> cached_offsets_;
+
+    // mmap index (for backward compatibility / temporary use)
 #ifdef _WIN32
     void* mmap_mem_ = nullptr;
     void* mmap_handle_ = nullptr;
