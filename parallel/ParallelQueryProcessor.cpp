@@ -40,9 +40,9 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
 
         // Enqueue task to process this chunk
         // The task receives the chunk pointer and the ChunkWorker pointer
-        pool.enqueue(chunk_ptr, [&q](const std::shared_ptr<std::string>& chunk, const std::shared_ptr<ChunkWorker>& worker) {
+        pool.enqueue(chunk_ptr, [&q](const std::shared_ptr<std::string>& thread_chunk, const std::shared_ptr<ChunkWorker>& worker) {
             // Process chunk - parse lines and filter by query
-            std::istringstream stream(*chunk);
+            std::istringstream stream(*thread_chunk);
             std::string line;
             int total_lines = 0;
             int lines_matched = 0;
