@@ -93,12 +93,18 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool AndQuery::eval(std::string_view row)  {
+    bool AndQuery::eval(std::vector<std::string_view> fields) {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
-            if (!subquery->eval(row)) { return false; }
+            if (!subquery->eval(fields)) { return false; }
         }
         return true;
+    }
+
+    bool AndQuery::eval(std::string_view row)  {
+        static thread_local std::vector<std::string_view> fields;
+        dob::split_csv_line(row, fields);
+        return AndQuery::eval(fields);
     }
 
     OrQuery::OrQuery(std::vector<std::unique_ptr<Query>> subqueries)
@@ -109,18 +115,30 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool OrQuery::eval(std::string_view row)  {
+    bool OrQuery::eval(std::vector<std::string_view> fields) {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
-            if (subquery->eval(row)) { return true; }
+            if (subquery->eval(fields)) { return true; }
         }
         return false;
     }
 
+    bool OrQuery::eval(std::string_view row)  {
+        static thread_local std::vector<std::string_view> fields;
+        dob::split_csv_line(row, fields);
+        return OrQuery::eval(fields);
+    }
+
     NotQuery::NotQuery(std::unique_ptr<Query> subquery) : subquery_(std::move(subquery)) {}
 
+    bool NotQuery::eval(std::vector<std::string_view> fields) {
+        return !subquery_->eval(fields);
+    }
+
     bool NotQuery::eval(std::string_view row)  {
-        return !subquery_->eval(row);
+        static thread_local std::vector<std::string_view> fields;
+        dob::split_csv_line(row, fields);
+        return NotQuery::eval(fields);
     }
 
     MatchQuery::MatchQuery(std::string_view column, const std::any& value) {
@@ -134,10 +152,7 @@ namespace query {
         columnType_ = nullptr;  // Not needed anymore since we have category
     }
 
-    bool MatchQuery::eval(std::string_view row)  {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-
+    bool MatchQuery::eval(std::vector<std::string_view> fields) {
         if (columnIndex_ >= static_cast<int>(fields.size())) {
             return false;
         }
@@ -164,7 +179,13 @@ namespace query {
             default:
                 throw std::runtime_error("Unsupported column category");
         }
-    };
+    }
+
+    bool MatchQuery::eval(std::string_view row)  {
+        static thread_local std::vector<std::string_view> fields;
+        dob::split_csv_line(row, fields);
+        return MatchQuery::eval(fields);
+    }
 
 
     RangeQuery::RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue) {
@@ -189,9 +210,12 @@ namespace query {
     }
 
     bool RangeQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
+        thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
+        return RangeQuery::eval(fields);
+    }
 
+    bool RangeQuery::eval(std::vector<std::string_view> fields) {
         if (columnIndex_ >= static_cast<int>(fields.size())) {
             return false;
         }

@@ -13,6 +13,7 @@ namespace query {
         virtual ~Query() = default;
 
         // Evaluate the query against a CSV row
+        virtual bool eval(std::vector<std::string_view> fields) = 0;
         virtual bool eval(std::string_view row) = 0;
     };
 
@@ -26,6 +27,7 @@ namespace query {
         template<typename... Queries>
         explicit AndQuery(Queries&&... queries);
 
+        bool eval(std::vector<std::string_view> fields) override;
         bool eval(std::string_view row) override;
     };
 
@@ -39,6 +41,7 @@ namespace query {
         template<typename... Queries>
         explicit OrQuery(Queries&&... queries);
 
+        bool eval(std::vector<std::string_view> fields) override;
         bool eval(std::string_view row) override;
     };
 
@@ -48,6 +51,7 @@ namespace query {
     public:
         explicit NotQuery(std::unique_ptr<Query> subquery);
 
+        bool eval(std::vector<std::string_view> fields) override;
         bool eval(std::string_view row) override;
     };
 
@@ -71,6 +75,7 @@ namespace query {
         MatchQuery(std::string_view column, const char* value)
             : MatchQuery(column, std::any(std::string(value))) {}
 
+        bool eval(std::vector<std::string_view> fields) override;
         bool eval(std::string_view row) override;
     };
 
@@ -106,6 +111,7 @@ namespace query {
         RangeQuery(std::string_view column, const char* minValue, const char* maxValue)
             : RangeQuery(column, std::any(std::string(minValue)), std::any(std::string(maxValue))) {}
 
+        bool eval(std::vector<std::string_view> fields) override;
         bool eval(std::string_view row) override;
     };
 
