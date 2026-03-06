@@ -93,7 +93,7 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool AndQuery::eval(std::vector<std::string_view> fields) {
+    bool AndQuery::eval(const std::vector<std::string_view>& fields) const {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
             if (!subquery->eval(fields)) { return false; }
@@ -101,7 +101,7 @@ namespace query {
         return true;
     }
 
-    bool AndQuery::eval(std::string_view row)  {
+    bool AndQuery::eval(std::string_view row) const {
         static thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return AndQuery::eval(fields);
@@ -115,7 +115,7 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool OrQuery::eval(std::vector<std::string_view> fields) {
+    bool OrQuery::eval(const std::vector<std::string_view>& fields) const {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
             if (subquery->eval(fields)) { return true; }
@@ -123,19 +123,19 @@ namespace query {
         return false;
     }
 
-    bool OrQuery::eval(std::string_view row)  {
-        static thread_local std::vector<std::string_view> fields;
+    bool OrQuery::eval(std::string_view row) const {
+        thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return OrQuery::eval(fields);
     }
 
     NotQuery::NotQuery(std::unique_ptr<Query> subquery) : subquery_(std::move(subquery)) {}
 
-    bool NotQuery::eval(std::vector<std::string_view> fields) {
+    bool NotQuery::eval(const std::vector<std::string_view>& fields) const {
         return !subquery_->eval(fields);
     }
 
-    bool NotQuery::eval(std::string_view row)  {
+    bool NotQuery::eval(std::string_view row) const {
         static thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return NotQuery::eval(fields);
@@ -152,7 +152,7 @@ namespace query {
         columnType_ = nullptr;  // Not needed anymore since we have category
     }
 
-    bool MatchQuery::eval(std::vector<std::string_view> fields) {
+    bool MatchQuery::eval(const std::vector<std::string_view>& fields) const {
         if (columnIndex_ >= static_cast<int>(fields.size())) {
             return false;
         }
@@ -181,7 +181,7 @@ namespace query {
         }
     }
 
-    bool MatchQuery::eval(std::string_view row)  {
+    bool MatchQuery::eval(std::string_view row) const {
         static thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return MatchQuery::eval(fields);
@@ -209,13 +209,13 @@ namespace query {
         maxValue_ = maxValue;
     }
 
-    bool RangeQuery::eval(std::string_view row) {
+    bool RangeQuery::eval(std::string_view row) const {
         thread_local std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return RangeQuery::eval(fields);
     }
 
-    bool RangeQuery::eval(std::vector<std::string_view> fields) {
+    bool RangeQuery::eval(const std::vector<std::string_view>& fields) const {
         if (columnIndex_ >= static_cast<int>(fields.size())) {
             return false;
         }

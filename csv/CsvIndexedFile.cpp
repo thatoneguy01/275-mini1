@@ -88,7 +88,7 @@ std::size_t CsvIndexedFile::row_count() const
     return header_->row_count;
 }
 
-void CsvIndexedFile::seek_row(std::size_t row_index)
+void CsvIndexedFile::seek_row(std::size_t row_index) const
 {
     if (row_index >= header_->row_count)
         throw std::out_of_range("row out of range");
@@ -97,7 +97,7 @@ void CsvIndexedFile::seek_row(std::size_t row_index)
     file_.seekg(offsets_[row_index]);
 }
 
-std::string CsvIndexedFile::read_row(std::size_t row_index)
+std::string CsvIndexedFile::read_row(std::size_t row_index) const
 {
     if (row_index >= header_->row_count)
         throw std::out_of_range("row out of range");
@@ -133,7 +133,7 @@ std::string CsvIndexedFile::read_row(std::size_t row_index)
     return row;
 }
 
-std::string CsvIndexedFile::read_rows(int n)
+std::string CsvIndexedFile::read_rows(int n) const
 {
     if (n <= 0)
         return "";
@@ -425,7 +425,7 @@ uint64_t CsvIndexedFile::get_row_offset(std::size_t row_index) const
     return offsets_[row_index];
 }
 
-std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {
+std::vector<dob::DobJobApplication> CsvIndexedFile::query(const query::Query &q) const{
     parallel::ParallelQueryProcessor processor(*this, thread_pool_size_, chunk_size_);
     std::vector<dob::DobJobApplication> out_results;
     processor.execute(q, out_results);

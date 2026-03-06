@@ -64,11 +64,11 @@ void ChunkWorker::worker_thread_main() {
     LOG("ChunkWorker::worker_thread_main: Worker thread exiting");
 }
 
-void ChunkWorker::enqueue_task(std::function<void()> task) {
+void ChunkWorker::enqueue_task(const std::function<void()>&& task) {
     {
         std::lock_guard<std::mutex> lock(queue_mutex_);
         ++pending_tasks_;
-        task_queue_.push(std::move(task));
+        task_queue_.push(task);
         LOG("ChunkWorker::enqueue_task: Enqueued task, pending_tasks=%zu, queue_size=%zu",
             pending_tasks_, task_queue_.size());
     }
@@ -113,8 +113,8 @@ void ChunkWorker::clear_results() {
     results_.clear();
 }
 
-void ChunkWorker::add_result(dob::DobJobApplication&& result) {
-    results_.push_back(std::move(result));
+void ChunkWorker::add_result(const dob::DobJobApplication&& result) {
+    results_.push_back(result);
 }
 
 } // namespace parallel

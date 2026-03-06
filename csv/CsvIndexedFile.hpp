@@ -23,10 +23,10 @@ public:
 
     std::size_t row_count() const;
 
-    void seek_row(std::size_t row_index);
-    std::string read_row(std::size_t row_index);
-    std::string read_rows(int n);
-    std::vector<dob::DobJobApplication> query(query::Query &q);
+    void seek_row(std::size_t row_index) const;
+    std::string read_row(std::size_t row_index) const;
+    std::string read_rows(int n) const;
+    std::vector<dob::DobJobApplication> query(const query::Query &q) const;
 
     // Index access methods
     const uint64_t* get_offsets() const;
@@ -38,7 +38,7 @@ private:
     std::string idx_path_;
     std::size_t chunk_size_;
     std::size_t thread_pool_size_;
-    std::ifstream file_;
+    mutable std::ifstream file_;
 
     // mmap index
 #ifdef _WIN32
