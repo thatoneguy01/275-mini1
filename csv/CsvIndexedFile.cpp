@@ -407,29 +407,22 @@ void CsvIndexedFile::map_index()
     header_ = reinterpret_cast<CsvIndexHeader*>(mmap_mem_);
     offsets_ = reinterpret_cast<uint64_t*>(
         reinterpret_cast<char*>(mmap_mem_) + sizeof(CsvIndexHeader));
-
-    // Cache offsets in memory
-    if (header_->row_count > 0 && offsets_) {
-        cached_offsets_.assign(offsets_, offsets_ + header_->row_count);
-    }
-
-    LOG("CsvIndexedFile::map_index: Cached %llu row offsets in memory", header_->row_count);
 }
 
 const uint64_t* CsvIndexedFile::get_offsets() const
 {
-    if (cached_offsets_.empty()) {
+    if (!offsets_) {
         throw std::runtime_error("Index not available");
     }
-    return cached_offsets_.data();
+    return offsets_;
 }
 
 uint64_t CsvIndexedFile::get_row_offset(std::size_t row_index) const
 {
-    if (row_index >= cached_offsets_.size()) {
+    if (row_index >= header_->row_count) {
         throw std::out_of_range("row out of range");
     }
-    return cached_offsets_[row_index];
+    return offsets_[row_index];
 }
 
 std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) {

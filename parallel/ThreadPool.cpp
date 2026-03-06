@@ -34,7 +34,8 @@ void ThreadPool::wait_all() {
 
 void ThreadPool::get_all_results(std::vector<std::vector<dob::DobJobApplication>>& all_results) {
     for (auto& worker : workers_) {
-        all_results.push_back(std::move(worker->get_results()));
+        // get_results() now returns by value using move semantics
+        all_results.push_back(worker->get_results());
     }
 }
 

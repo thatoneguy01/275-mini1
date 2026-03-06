@@ -23,7 +23,7 @@ public:
     void shutdown();
     void wait_for_completion();
 
-    std::vector<dob::DobJobApplication>& get_results();
+    std::vector<dob::DobJobApplication> get_results();
     void clear_results();
 
     // Add a result to the worker's result collection (thread-safe within worker's own thread)

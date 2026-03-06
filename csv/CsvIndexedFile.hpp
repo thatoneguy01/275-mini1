@@ -40,10 +40,7 @@ private:
     std::size_t thread_pool_size_;
     std::ifstream file_;
 
-    // In-memory cached index offsets
-    std::vector<uint64_t> cached_offsets_;
-
-    // mmap index (for backward compatibility / temporary use)
+    // mmap index
 #ifdef _WIN32
     void* mmap_mem_ = nullptr;
     void* mmap_handle_ = nullptr;

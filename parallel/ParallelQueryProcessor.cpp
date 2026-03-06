@@ -120,6 +120,9 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
                              std::make_move_iterator(results.begin()),
                              std::make_move_iterator(results.end()));
     }
+
+    // Clear intermediate storage to free memory
+    all_worker_results.clear();
 }
 
 } // namespace parallel

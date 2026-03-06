@@ -8,6 +8,9 @@ namespace parallel {
 
 ChunkWorker::ChunkWorker(std::size_t chunk_size)
     : chunk_size_(chunk_size) {
+    // Reserve space for worst-case scenario where all rows in chunk match
+    // This avoids repeated reallocations during query execution
+    results_.reserve(chunk_size);
     // Create and start the worker thread
     thread_ = std::make_unique<std::thread>([this]() { worker_thread_main(); });
 }
@@ -102,8 +105,8 @@ void ChunkWorker::wait_for_completion() {
     LOG("ChunkWorker::wait_for_completion: Completed");
 }
 
-std::vector<dob::DobJobApplication>& ChunkWorker::get_results() {
-    return results_;
+std::vector<dob::DobJobApplication> ChunkWorker::get_results() {
+    return std::move(results_);
 }
 
 void ChunkWorker::clear_results() {
