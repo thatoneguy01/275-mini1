@@ -11,7 +11,6 @@ namespace dob {
         std::vector<std::string_view>& out
         )
     {
-        out.clear();  // CRITICAL: Clear before reuse to prevent unbounded growth
         out.reserve(96);
 
         const char* begin = line.data();

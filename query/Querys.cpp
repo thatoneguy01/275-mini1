@@ -102,7 +102,7 @@ namespace query {
     }
 
     bool AndQuery::eval(std::string_view row) const {
-        static thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return AndQuery::eval(fields);
     }
@@ -124,7 +124,7 @@ namespace query {
     }
 
     bool OrQuery::eval(std::string_view row) const {
-        thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return OrQuery::eval(fields);
     }
@@ -136,7 +136,7 @@ namespace query {
     }
 
     bool NotQuery::eval(std::string_view row) const {
-        static thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return NotQuery::eval(fields);
     }
@@ -182,7 +182,7 @@ namespace query {
     }
 
     bool MatchQuery::eval(std::string_view row) const {
-        static thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return MatchQuery::eval(fields);
     }
@@ -210,7 +210,7 @@ namespace query {
     }
 
     bool RangeQuery::eval(std::string_view row) const {
-        thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
         return RangeQuery::eval(fields);
     }

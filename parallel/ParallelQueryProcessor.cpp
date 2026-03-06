@@ -76,10 +76,11 @@ void ParallelQueryProcessor::execute(const query::Query& q, std::vector<dob::Dob
                     row_length--;
                 }
 
-                std::string_view line(thread_chunk->data() + row_offset_in_chunk, row_length);
-
-                if (line.empty())
+                if (row_length == 0) {
                     continue;
+                }
+
+                std::string_view line(thread_chunk->data() + row_offset_in_chunk, row_length);
 
                 if (q.eval(line)) {
                     try {
