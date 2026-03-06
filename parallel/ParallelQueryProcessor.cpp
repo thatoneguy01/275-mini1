@@ -76,7 +76,7 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
                     row_length--;
                 }
 
-                std::string line(thread_chunk->data() + row_offset_in_chunk, row_length);
+                std::string_view line(thread_chunk->data() + row_offset_in_chunk, row_length);
 
                 if (line.empty())
                     continue;
