@@ -135,7 +135,7 @@ namespace query {
     }
 
     bool MatchQuery::eval(std::string_view row)  {
-        static thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
 
         if (columnIndex_ >= static_cast<int>(fields.size())) {
@@ -189,7 +189,7 @@ namespace query {
     }
 
     bool RangeQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
+        std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
 
         if (columnIndex_ >= static_cast<int>(fields.size())) {
