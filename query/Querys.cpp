@@ -93,7 +93,7 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool AndQuery::eval(std::string_view row)  {
+    bool AndQuery::eval(std::string_view row) const  {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
             if (!subquery->eval(row)) { return false; }
@@ -109,7 +109,7 @@ namespace query {
         (subqueries_.push_back(std::forward<Queries>(queries)), ...);
     }
 
-    bool OrQuery::eval(std::string_view row)  {
+    bool OrQuery::eval(std::string_view row) const  {
         if (subqueries_.empty()) { return false; }
         for (const auto& subquery : subqueries_) {
             if (subquery->eval(row)) { return true; }
@@ -119,7 +119,7 @@ namespace query {
 
     NotQuery::NotQuery(std::unique_ptr<Query> subquery) : subquery_(std::move(subquery)) {}
 
-    bool NotQuery::eval(std::string_view row)  {
+    bool NotQuery::eval(std::string_view row) const  {
         return !subquery_->eval(row);
     }
 
@@ -134,7 +134,7 @@ namespace query {
         columnType_ = nullptr;  // Not needed anymore since we have category
     }
 
-    bool MatchQuery::eval(std::string_view row)  {
+    bool MatchQuery::eval(std::string_view row) const  {
         std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
 
@@ -188,7 +188,7 @@ namespace query {
         maxValue_ = maxValue;
     }
 
-    bool RangeQuery::eval(std::string_view row) {
+    bool RangeQuery::eval(std::string_view row) const {
         std::vector<std::string_view> fields;
         dob::split_csv_line(row, fields);
 

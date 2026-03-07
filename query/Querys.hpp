@@ -13,7 +13,7 @@ namespace query {
         virtual ~Query() = default;
 
         // Evaluate the query against a CSV row
-        virtual bool eval(std::string_view row) = 0;
+        virtual bool eval(std::string_view row) const = 0;
     };
 
     // Logical AND query - all subqueries must match
@@ -26,7 +26,7 @@ namespace query {
         template<typename... Queries>
         explicit AndQuery(Queries&&... queries);
 
-        bool eval(std::string_view row) override;
+        bool eval(std::string_view row) const override;
     };
 
     // Logical OR query - any subquery must match
@@ -39,7 +39,7 @@ namespace query {
         template<typename... Queries>
         explicit OrQuery(Queries&&... queries);
 
-        bool eval(std::string_view row) override;
+        bool eval(std::string_view row) const override;
     };
 
     class NotQuery : public Query {
@@ -48,7 +48,7 @@ namespace query {
     public:
         explicit NotQuery(std::unique_ptr<Query> subquery);
 
-        bool eval(std::string_view row) override;
+        bool eval(std::string_view row) const override;
     };
 
     // Equality match query - field equals a value
@@ -71,7 +71,7 @@ namespace query {
         MatchQuery(std::string_view column, const char* value)
             : MatchQuery(column, std::any(std::string(value))) {}
 
-        bool eval(std::string_view row) override;
+        bool eval(std::string_view row) const override;
     };
 
     // Range query - field is between min and max values
@@ -106,7 +106,7 @@ namespace query {
         RangeQuery(std::string_view column, const char* minValue, const char* maxValue)
             : RangeQuery(column, std::any(std::string(minValue)), std::any(std::string(maxValue))) {}
 
-        bool eval(std::string_view row) override;
+        bool eval(std::string_view row) const override;
     };
 
 } // namespace query
