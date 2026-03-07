@@ -2,6 +2,7 @@
 #include "ChunkWorker.hpp"
 #include "ThreadPool.hpp"
 #include "../csv/CsvIndexedFile.hpp"
+#include "../dob/DobCsv.hpp"
 #include <vector>
 #include <memory>
 
@@ -51,6 +52,9 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
                 const std::shared_ptr<std::string>& thread_chunk,
                 const std::shared_ptr<ChunkWorker>& worker) {
 
+            // Reusable vector for CSV parsing - allocated once per worker thread
+            static thread_local std::vector<std::string_view> fields;
+
             // Process each row in the chunk using offsets
             for (std::size_t row_idx = start_row; row_idx < end_row; ++row_idx) {
                 // Calculate the position of this row within the chunk
@@ -82,7 +86,9 @@ void ParallelQueryProcessor::execute(query::Query& q, std::vector<dob::DobJobApp
 
                 std::string_view line(thread_chunk->data() + row_offset_in_chunk, row_length);
 
-                if (q.eval(line)) {
+                // Parse CSV once per row and evaluate with pre-parsed fields
+                dob::split_csv_line(line, fields);
+                if (q.eval(fields)) {
                     try {
                         worker->add_result(dob::parse_row(line));
                     } catch (const std::exception& e) {

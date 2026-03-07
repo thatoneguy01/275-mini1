@@ -101,11 +101,6 @@ namespace query {
         return true;
     }
 
-    bool AndQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-        return AndQuery::eval(fields);
-    }
 
     OrQuery::OrQuery(std::vector<std::unique_ptr<Query>> subqueries)
         : subqueries_(std::move(subqueries)) {}
@@ -123,11 +118,6 @@ namespace query {
         return false;
     }
 
-    bool OrQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-        return OrQuery::eval(fields);
-    }
 
     NotQuery::NotQuery(std::unique_ptr<Query> subquery) : subquery_(std::move(subquery)) {}
 
@@ -135,11 +125,6 @@ namespace query {
         return !subquery_->eval(fields);
     }
 
-    bool NotQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-        return NotQuery::eval(fields);
-    }
 
     MatchQuery::MatchQuery(std::string_view column, const std::any& value) {
         auto info = dob::column_info(column);
@@ -181,11 +166,6 @@ namespace query {
         }
     }
 
-    bool MatchQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-        return MatchQuery::eval(fields);
-    }
 
 
     RangeQuery::RangeQuery(std::string_view column, const std::any& minValue, const std::any& maxValue) {
@@ -209,11 +189,6 @@ namespace query {
         maxValue_ = maxValue;
     }
 
-    bool RangeQuery::eval(std::string_view row) {
-        static thread_local std::vector<std::string_view> fields;
-        dob::split_csv_line(row, fields);
-        return RangeQuery::eval(fields);
-    }
 
     bool RangeQuery::eval(const std::vector<std::string_view>& fields) const {
         if (columnIndex_ >= static_cast<int>(fields.size())) {
