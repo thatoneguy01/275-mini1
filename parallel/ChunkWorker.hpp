@@ -19,7 +19,7 @@ public:
     ChunkWorker(std::size_t chunk_size);
     ~ChunkWorker();
 
-    void enqueue_task(const std::function<void()>&& task);
+    void enqueue_task(std::function<void()>&& task);
     void shutdown();
     void wait_for_completion();
 
@@ -27,7 +27,7 @@ public:
     void clear_results();
 
     // Add a result to the worker's result collection (thread-safe within worker's own thread)
-    void add_result(const dob::DobJobApplication&& result);
+    void add_result(dob::DobJobApplication&& result);
 
 private:
     void worker_thread_main();

@@ -11,6 +11,7 @@ namespace dob {
         std::vector<std::string_view>& out
         )
     {
+        out.clear();
         out.reserve(96);
 
         const char* begin = line.data();

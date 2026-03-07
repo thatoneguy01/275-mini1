@@ -13,7 +13,7 @@ class ParallelQueryProcessor {
 public:
     ParallelQueryProcessor(const CsvIndexedFile& csv_file, std::size_t thread_pool_size, std::size_t chunk_size);
 
-    void execute(const query::Query& q, std::vector<dob::DobJobApplication>& out_results);
+    void execute(query::Query& q, std::vector<dob::DobJobApplication>& out_results);
 
 private:
     const CsvIndexedFile& csv_file_;

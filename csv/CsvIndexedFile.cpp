@@ -425,7 +425,7 @@ uint64_t CsvIndexedFile::get_row_offset(std::size_t row_index) const
     return offsets_[row_index];
 }
 
-std::vector<dob::DobJobApplication> CsvIndexedFile::query(const query::Query &q) const{
+std::vector<dob::DobJobApplication> CsvIndexedFile::query(query::Query &q) const{
     parallel::ParallelQueryProcessor processor(*this, thread_pool_size_, chunk_size_);
     std::vector<dob::DobJobApplication> out_results;
     processor.execute(q, out_results);

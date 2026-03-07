@@ -26,7 +26,7 @@ public:
     void seek_row(std::size_t row_index) const;
     std::string read_row(std::size_t row_index) const;
     std::string read_rows(int n) const;
-    std::vector<dob::DobJobApplication> query(const query::Query &q) const;
+    std::vector<dob::DobJobApplication> query(query::Query &q) const;
 
     // Index access methods
     const uint64_t* get_offsets() const;
